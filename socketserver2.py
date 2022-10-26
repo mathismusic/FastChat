@@ -40,4 +40,5 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                 break
             print(f"Received:", data.decode())
             a = input("ToClient:")
+            if a == "": a = "Received."
             conn.sendall(bytes(str(a).encode()))
