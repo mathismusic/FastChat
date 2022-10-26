@@ -10,8 +10,9 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
     a=""
     while(a!="exit"):
         a = input("Client: ")
-        if a == "": a = ""
+        if a == "": print("yes, empty")
         s.sendall(bytes(str(a).encode()))
+        print("empty string sent")
         data = s.recv(1024).decode()
         if data != "Received.": print("Received:", data)
 
