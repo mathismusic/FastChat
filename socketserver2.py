@@ -3,7 +3,7 @@
 import socket,sys,selectors, types
 
 HOST = "192.168.103.215"  # Standard loopback interface address (localhost)
-PORT = 5001  # Port to listen on (non-privileged ports are > 1023)
+PORT = 61001  # Port to listen on (non-privileged ports are > 1023)
 
 # sel = selectors.DefaultSelector()
 
@@ -38,7 +38,7 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             data = conn.recv(1024).decode()
             if data is None or data=="exit":
                 break
-            print("Received:", data)
+            if data != "pass": print("Received:", data)
             a = input("ToClient: ")
             if a == "": a = "Received."
             conn.sendall(bytes(str(a).encode()))
