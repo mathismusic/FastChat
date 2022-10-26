@@ -35,10 +35,10 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
     with conn:
         print(f"Connected by {addr}")
         while True:
-            data = conn.recv(1024)
+            data = conn.recv(1024).decode()
             if data is None or data=="exit":
                 break
-            print("Received:", data.decode())
+            print("Received:", data)
             a = input("ToClient: ")
             if a == "": a = "Received."
             conn.sendall(bytes(str(a).encode()))
