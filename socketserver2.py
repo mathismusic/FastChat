@@ -2,8 +2,8 @@
 
 import socket,sys,selectors, types
 
-HOST = "localhost"  # Standard loopback interface address (localhost)
-PORT = 65430  # Port to listen on (non-privileged ports are > 1023)
+HOST = "192.168.103.215"  # Standard loopback interface address (localhost)
+PORT = 5001  # Port to listen on (non-privileged ports are > 1023)
 
 # sel = selectors.DefaultSelector()
 
@@ -39,5 +39,5 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             if not data or data=="exit":
                 break
             print(f"Received:", data.decode())
-            a = input("Client:")
+            a = input("ToClient:")
             conn.sendall(bytes(str(a).encode()))
