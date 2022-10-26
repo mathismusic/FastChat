@@ -9,8 +9,9 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
     s.connect((HOST, PORT))
     a=""
     while(a!="exit"):
-        a = input("Client:")
+        a = input("Client: ")
+        if a == "": a = ""
         s.sendall(bytes(str(a).encode()))
         data = s.recv(1024).decode()
-        if data != "Received.": print(f"Received:", data)
+        if data != "Received.": print("Received:", data)
 

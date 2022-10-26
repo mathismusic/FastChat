@@ -38,7 +38,7 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             data = conn.recv(1024)
             if not data or data=="exit":
                 break
-            print(f"Received:", data.decode())
-            a = input("ToClient:")
+            print("Received:", data.decode())
+            a = input("ToClient: ")
             if a == "": a = "Received."
             conn.sendall(bytes(str(a).encode()))
