@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
-import sys
-import socket
+from sys import argv, exit
+from socket import socket, AF_INET, SOCK_STREAM
 import selectors
 import types
 
@@ -14,7 +14,7 @@ def start_connections(host, port, num_conns):
     for i in range(0, num_conns):
         connid = i + 1
         print(f"Starting connection {connid} to {server_addr}")
-        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock = socket(AF_INET, SOCK_STREAM)
         sock.setblocking(False)
         sock.connect_ex(server_addr)
         events = selectors.EVENT_READ | selectors.EVENT_WRITE
@@ -49,11 +49,11 @@ def service_connection(key, mask):
             data.outb = data.outb[sent:]
 
 
-if len(sys.argv) != 4:
-    print(f"Usage: {sys.argv[0]} <host> <port> <num_connections>")
-    sys.exit(1)
+if len(argv) != 4:
+    print(f"Usage: {argv[0]} <host> <port> <num_connections>")
+    exit(1)
 
-host, port, num_conns = sys.argv[1:4]
+host, port, num_conns = argv[1:]
 start_connections(host, int(port), int(num_conns))
 
 try:
