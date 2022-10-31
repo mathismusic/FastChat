@@ -39,7 +39,7 @@ def serve_client(key: SelectorKey, mask: bool):
                 msg = json.loads(recv_data.decode())
                 if msg['Recipient'] not in users:
                     sock.sendall('invalid_recipient'.encode())
-                print(f"Client {data.username} to {msg['Recipient']}:", recv_data.decode())
+                print(f"Client {data.username} to {msg['Recipient']}:", msg['Message'])
             else:
                 print(f"Closing connection to {data.username} ({data.addr})")
                 selector.unregister(sock)
@@ -47,7 +47,7 @@ def serve_client(key: SelectorKey, mask: bool):
         if mask & EVENT_WRITE:
             if data.outb:
                 response = ""#input(f"ToClient {data.username}: ")
-                if response == "": response = "Message Received."
+                if response == "": response = "Received."
                 data.outb = response.encode()
                 # print(f"Echoing {data.outb!r} to {data.addr}")
                 sent = sock.send(data.outb)  # Should be ready to write

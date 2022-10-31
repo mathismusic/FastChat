@@ -42,4 +42,5 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         s.sendall(bytes(str(Message(username,rec,message)).encode()))
         data = s.recv(1024).decode()
         if data != "Received.": print("Received:", data)
+        else: print("Message sent successfully.") # tick.
 
