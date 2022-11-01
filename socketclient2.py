@@ -17,8 +17,10 @@ async def user_input():
         s.sendall(bytes(str(Message(username,receiver,message)).encode()))
 
 async def print_something():
-    await asyncio.sleep(5)
-    print('something')
+    await asyncio.sleep(180)
+    data = s.recv(1024).decode()
+    if data != "received": print("Received:", data)
+    else: print("Message sent successfully.") # tick.
 
 async def main():
     tasks = [user_input(), print_something()]
@@ -56,7 +58,6 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
 
     # messaging loop
     while(a!="exit"):
-        
-        data = s.recv(1024).decode()
-        if data != "received": print("Received:", data)
-        else: print("Message sent successfully.") # tick.
+        loop = asyncio.get_event_loop()
+        loop.run_until_complete(main())
+        loop.close()
