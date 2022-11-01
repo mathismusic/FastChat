@@ -8,7 +8,8 @@ import json
 
 selector = DefaultSelector()
 
-users = {"A": "ok", "B": "ook", "C": "", "D": "", "E": "", "F": ""}
+users: dict(str, str) = {"A": "ok", "B": "ook", "C": "", "D": "", "E": "", "F": ""}
+onlineUserSockets: dict(str, socket) = {}
 
 def accept_client(sock: socket):
     conn, addr = sock.accept()  # Should be ready to read
@@ -30,12 +31,12 @@ def accept_client(sock: socket):
             users[username] = password
 
     print(f"Accepted connection from {addr} with username {username}")
+    onlineUserSockets[username] = conn
     conn.sendall('You are now logged in.'.encode())
     conn.setblocking(False)
     data = SimpleNamespace(username=username, addr=addr, inb=b"", outb=b"")
     events = EVENT_READ | EVENT_WRITE
     selector.register(conn, events, data=data)
-
 
 def serve_client(key: SelectorKey, mask: bool):
     sock: socket = key.fileobj
@@ -48,6 +49,11 @@ def serve_client(key: SelectorKey, mask: bool):
                 msg = json.loads(recv_data.decode())
                 if msg['Recipient'] not in users:
                     sock.sendall('invalid_recipient'.encode())
+                    return
+                elif msg['Recipient'] not in onlineUserSockets:
+                    pass # todo, must save message in queue - dict(username, [messages to be sent sorted by timestamp]) and send when user comes online (in accept_client when they log in)
+                else: # user is online
+                    onlineUserSockets[data.username].sendall(msg['Message'].encode())
                 print(f"Client {data.username} to {msg['Recipient']}:", msg['Message'])
             else:
                 print(f"Closing connection to {data.username} ({data.addr})")
@@ -56,7 +62,7 @@ def serve_client(key: SelectorKey, mask: bool):
         if mask & EVENT_WRITE:
             if data.outb:
                 response = ""#input(f"ToClient {data.username}: ")
-                if response == "": response = "Received."
+                if response == "": response = "received"
                 data.outb = response.encode()
                 # print(f"Echoing {data.outb!r} to {data.addr}")
                 sent = sock.send(data.outb)  # Should be ready to write
