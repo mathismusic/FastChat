@@ -16,10 +16,19 @@ def accept_client(sock: socket):
     user_credentials: dict = json.loads(msg)
     username = user_credentials['Username']
     password = user_credentials['Password']
-    if not (username in users.keys() and password == users[username]):
+    newuser = user_credentials['Newuser']
+    if not newuser and not (username in users.keys() and password == users[username]):
         conn.sendall("invalid".encode())
         conn.close()
         return
+    if newuser:
+        if username in users.keys():
+            conn.sendall("invalid".encode())
+            conn.close()
+            return
+        else:
+            users[username] = password
+
     print(f"Accepted connection from {addr} with username {username}")
     conn.sendall('You are now logged in.'.encode())
     conn.setblocking(False)
