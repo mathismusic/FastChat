@@ -56,7 +56,6 @@ class Client:
         data = json.loads(self.s.recv(1024).decode())
         self.receiver = data['Recipient'] # update receiver to whoever sent the message
         print(self.receiver + " says " + data['Message'])
-        self.display()
 
     def serve(self):
         self.display()
