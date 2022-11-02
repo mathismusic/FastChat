@@ -18,7 +18,7 @@ class Client:
     def __init__(self) -> None:
         self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM) # the client's socket
         self.HOST = "192.168.43.215"  # The server's hostname or IP address
-        self.PORT = 61002  # The port used by the server
+        self.PORT = 61001  # The port used by the server
         self.username = None
         self.receiver = None # who is the client talking to. make receiver a class for dms and groups.
         # add fields to remember username and password to auto-login next time. (use a local client-specific database/file to store local client stuff)
@@ -69,7 +69,7 @@ class Client:
                         self.receiveMessage()
                         self.display()
                     else:
-                        while self.receiver is None:
+                        while self.receiver in [None, ""]:
                             self.receiver = sys.stdin.readline()[:-1]
                             self.display()
                         self.sendMessage()
