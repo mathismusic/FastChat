@@ -58,20 +58,20 @@ class Client:
     def serve(self):
         try:
             while True:
-                input_streams = [sys.stdin, self.s]
-                input = select(input_streams, [], [], 180) # remove timeout?
+                input_streams = [self.s, sys.stdin]
+                inputs = select(input_streams, [], [], 180)[0] # remove timeout?
                 
-                if input is None: 
-                    continue
-                
-                if input == sys.stdin:
-                    while self.receiver is None:
-                        self.receiver = sys.stdin.readline()
+                for input in inputs:
+                    if input is self.s:
+                        self.recieveMessage()
                         self.display()
-                    self.sendMessage()
-                else:
-                    self.recieveMessage()
-                    self.display()
+                    else:
+                        while self.receiver is None:
+                            self.receiver = sys.stdin.readline()
+                            self.display()
+                        self.sendMessage()
+                        self.display()
+                        
         except KeyboardInterrupt:
             print("Exiting")
             self.s.close()
