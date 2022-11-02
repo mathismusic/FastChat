@@ -64,6 +64,9 @@ class Client:
                 input_streams = [sys.stdin, self.s]
                 input = select(input_streams, [], [], 180) # remove timeout?
                 
+                if input is None: 
+                    continue
+                
                 if input == sys.stdin:
                     while self.receiver is None:
                         self.receiver = sys.stdin.readline()
