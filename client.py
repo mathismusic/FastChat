@@ -47,7 +47,7 @@ class Client:
         # recipient = input("Continue conversation with: ")
         message = input("Message: ")
         to_send = Message(self.username, self.receiver, message)
-        self.s.sendall(bytes(str(to_send)).encode())
+        self.s.sendall(str(to_send).encode())
         pass
 
     def recieveMessage(self):
