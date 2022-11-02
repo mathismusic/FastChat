@@ -8,8 +8,8 @@ import json
 
 selector = DefaultSelector()
 
-users: dict(str, str) = {"A": "ok", "B": "ook", "C": "", "D": "", "E": "", "F": ""}
-onlineUserSockets: dict(str, socket) = {}
+users: dict[str, str] = {"A": "ok", "B": "ook", "C": "", "D": "", "E": "", "F": ""}
+onlineUserSockets: dict[str, socket] = {}
 
 def accept_client(sock: socket):
     conn, addr = sock.accept()  # Should be ready to read
