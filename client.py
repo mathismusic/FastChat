@@ -18,7 +18,7 @@ class Client:
     def __init__(self) -> None:
         self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM) # the client's socket
         self.HOST = "192.168.43.215"  # The server's hostname or IP address
-        self.PORT = 61001  # The port used by the server
+        self.PORT = 61002  # The port used by the server
         self.username = None
         self.receiver = None # who is the client talking to. make receiver a class for dms and groups.
         # add fields to remember username and password to auto-login next time. (use a local client-specific database/file to store local client stuff)
@@ -45,17 +45,20 @@ class Client:
 
     def sendMessage(self):
         # recipient = input("Continue conversation with: ")
-        message = input("Message: ")
-        to_send = Message(self.username, self.receiver, message)
+        to_send = Message(self.username, self.receiver, sys.stdin.readline())
         self.s.sendall(str(to_send).encode())
-        pass
+        status = self.s.recv(1024).decode()
+        if status == "invalid_recipient": 
+            print("This user doesn't use FastChat :)")
+        self.display()
 
     def recieveMessage(self):
-        data = self.s.recv(1024).decode()
-        if data != "received": print(self.receiver + ":", data)
-        else: print("Message sent successfully.") # tick.
+        data = json.loads(self.s.recv(1024).decode())
+        print(self.receiver + " says " + data['Message'])
+        self.display()
 
     def serve(self):
+        self.display()
         try:
             while True:
                 input_streams = [self.s, sys.stdin]
