@@ -7,7 +7,7 @@ import asyncio
 from select import select
 
 HOST = "192.168.103.215"  # The server's hostname or IP address
-PORT = 61002  # The port used by the server
+PORT = 6100  # The port used by the server
 
 async def user_input():
     while True:
