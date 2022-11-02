@@ -45,14 +45,14 @@ class Client:
 
     def sendMessage(self):
         # recipient = input("Continue conversation with: ")
-        to_send = Message(self.username, self.receiver, sys.stdin.readline())
+        to_send = Message(self.username, self.receiver, sys.stdin.readline()[:-1])
+        print(to_send)
         self.s.sendall(str(to_send).encode())
         status = self.s.recv(1024).decode()
         if status == "invalid_recipient": 
             print("This user doesn't use FastChat :)")
-        self.display()
 
-    def recieveMessage(self):
+    def receiveMessage(self):
         data = json.loads(self.s.recv(1024).decode())
         print(self.receiver + " says " + data['Message'])
         self.display()
@@ -66,11 +66,11 @@ class Client:
                 
                 for input in inputs:
                     if input is self.s:
-                        self.recieveMessage()
+                        self.receiveMessage()
                         self.display()
                     else:
                         while self.receiver is None:
-                            self.receiver = sys.stdin.readline()
+                            self.receiver = sys.stdin.readline()[:-1]
                             self.display()
                         self.sendMessage()
                         self.display()

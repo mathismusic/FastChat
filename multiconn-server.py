@@ -53,10 +53,10 @@ def serve_client(key: SelectorKey, mask: bool):
                 elif msg['Recipient'] not in onlineUserSockets:
                     pass # todo, must save message in queue - dict(username, [messages to be sent sorted by timestamp]) and send when user comes online (in accept_client when they log in)
                 else: # user is online
-                    onlineUserSockets[data.username].sendall(recv_data)
+                    onlineUserSockets[msg['Recipient']].sendall(recv_data)
                 print(f"Client {data.username} to {msg['Recipient']}:", msg['Message'])
             else:
-                print(f"Closing connection to {data.username} ({data.addr})")
+                print(f"Closing connection {data.username} ({data.addr}) - username {data.username}")
                 selector.unregister(sock)
                 sock.close()
         if mask & EVENT_WRITE:
@@ -87,8 +87,6 @@ with socket(AF_INET, SOCK_STREAM) as lsock:
     selector.register(fileobj=lsock, events=EVENT_READ, data=None)
 
     try:
-        events = selector.select(timeout=None)
-        # print(events)
         while True:
             events = selector.select(timeout=None)
             for key, mask in events:
