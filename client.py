@@ -5,7 +5,7 @@ import json
 import sys
 from select import select
 
-HOST = "192.168.103.215"  # The server's hostname or IP address
+HOST = "192.168.43.215"  # The server's hostname or IP address
 PORT = 61002  # The port used by the server
 
 class Message:
@@ -21,6 +21,7 @@ class Client:
     def __init__(self) -> None:
         pass
     def login(self) -> None:
+        pass
 
 with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
     s.connect((HOST, PORT))
