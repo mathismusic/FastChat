@@ -42,41 +42,43 @@ class Client:
                 if (data == "invalid"):
                     print("This username already exists. Please try again." if newuser else "Invalid username, please try again.")
                 else: 
-                    self.connToDB = psycopg2.connect(
-                                                    host="localhost",
-                                                    user="postgres",
-                                                    password="pass",
-                                                    port="5432")
-                    if newuser:
-                        self.connToDB.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT);
-                        curs = self.connToDB.cursor()
-                        curs.execute("CREATE DATABASE " + username)
-                        self.connToDB.commit()
-                        self.connToDB.close()
-                        self.connToDB = psycopg2.connect(
-                                                    database=username,
-                                                    host="localhost",
-                                                    user="postgres",
-                                                    password="pass",
-                                                    port="5432")
-                        curs = self.connToDB.cursor()
-                        curs.execute("""CREATE TABLE chats (
-                                        chat_id SERIAL PRIMARY KEY,
-                                        reciever VARCHAR(255) NOT NULL
-                                        )
-                                    """)
-                        self.connToDB.commit()
-                        curs.execute(""" CREATE TABLE history (
-                                        FOREIGN KEY (chat_id) REFERENCES chats(chat_id),
-                                        sender_name VARCHAR(255) NOT NULL,
-                                        msg TEXT NOT NULL,
-                                        t TIMESTAMP NOT NULL
-                                        )
-                                    """) # Any otherrelevent name for time ?
-                        curs.execute("""ALTER TABLE history ALTER COLUMN t SET DEFAULT now();""")
-                        self.connToDB.commit()
-                        curs.close()
                     break
+
+                self.connToDB = psycopg2.connect(
+                    host="localhost",
+                    user="postgres",
+                    password="pass",
+                    port="5432"
+                )
+                if newuser:
+                    self.connToDB.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
+                    curs = self.connToDB.cursor()
+                    curs.execute("CREATE DATABASE " + username.lower())
+                    self.connToDB.commit()
+                    self.connToDB.close()
+                    self.connToDB = psycopg2.connect(
+                                                database=username,
+                                                host="localhost",
+                                                user="postgres",
+                                                password="pass",
+                                                port="5432")
+                    curs = self.connToDB.cursor()
+                    curs.execute("""CREATE TABLE chats (
+                                    chat_id SERIAL PRIMARY KEY,
+                                    reciever VARCHAR(255) NOT NULL
+                                    )
+                                """)
+                    self.connToDB.commit()
+                    curs.execute(""" CREATE TABLE history (
+                                    FOREIGN KEY (chat_id) REFERENCES chats(chat_id),
+                                    sender_name VARCHAR(255) NOT NULL,
+                                    msg TEXT NOT NULL,
+                                    t TIMESTAMP NOT NULL
+                                    )
+                                """) # Any otherrelevent name for time ?
+                    curs.execute("""ALTER TABLE history ALTER COLUMN t SET DEFAULT now();""")
+                    self.connToDB.commit()
+                    curs.close()
         except KeyboardInterrupt:
             print("Caught keyboard interrupt, exiting")
 
