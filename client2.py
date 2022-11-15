@@ -6,6 +6,7 @@ import sys
 from select import select
 #from color_codes import *
 import psycopg2
+from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 
 class Message:
     def __init__(self, sender, rec, msg) -> None:
@@ -47,16 +48,26 @@ class Client:
                                                     password="pass",
                                                     port="5432")
                     if newuser:
+                        self.connToDB.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT);
                         curs = self.connToDB.cursor()
-                        curs.execute("CREATE DATABASE "+username+";")
+                        curs.execute("CREATE DATABASE " + username)
+                        self.connToDB.commit()
+                        self.connToDB.close()
+                        self.connToDB = psycopg2.connect(
+                                                    database=username,
+                                                    host="localhost",
+                                                    user="postgres",
+                                                    password="pass",
+                                                    port="5432")
+                        curs = self.connToDB.cursor()
                         curs.execute("""CREATE TABLE chats (
                                         chat_id SERIAL PRIMARY KEY,
                                         reciever VARCHAR(255) NOT NULL
                                         )
                                     """)
-                        
+                        self.connToDB.commit()
                         curs.execute(""" CREATE TABLE history (
-                                        FOREIGN KEY (chat_id) REFERENCES chats (chat_id),
+                                        FOREIGN KEY (chat_id) REFERENCES chats(chat_id),
                                         sender_name VARCHAR(255) NOT NULL,
                                         msg TEXT NOT NULL,
                                         t TIMESTAMP NOT NULL
