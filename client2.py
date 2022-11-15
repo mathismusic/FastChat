@@ -70,6 +70,7 @@ class Client:
                                 """)
                     self.connToDB.commit()
                     curs.execute(""" CREATE TABLE history (
+                                    chat_id SERIAL,
                                     FOREIGN KEY (chat_id) REFERENCES chats(chat_id),
                                     sender_name VARCHAR(255) NOT NULL,
                                     msg TEXT NOT NULL,
