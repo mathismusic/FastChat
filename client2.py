@@ -44,52 +44,54 @@ class Client:
                 else: 
                     break
 
-                if newuser:
-                    self.sqlConnection = psycopg2.connect(
-                        host=self.HOST,
-                        user="postgres",
-                        password="password",
-                        port="5432"
-                    )
-                    self.sqlConnection.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
-                    curs = self.sqlConnection.cursor()
-                    curs.execute("CREATE DATABASE " + username.lower())
-                    self.sqlConnection.commit()
-                    self.sqlConnection.close()
+            if newuser:
+                self.sqlConnection = psycopg2.connect(
+                    host=self.HOST,
+                    user="postgres",
+                    password="password",
+                    port="5432"
+                )
+                self.sqlConnection.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
+                curs = self.sqlConnection.cursor()
+                curs.execute("CREATE DATABASE " + username.lower())
+                self.sqlConnection.commit()
+                self.sqlConnection.close()
 
-                    self.sqlConnection = psycopg2.connect(
-                        database=username,
-                        host=self.HOST,
-                        user="postgres",
-                        password="password",
-                        port="5432"
-                    )
-                    curs = self.sqlConnection.cursor()
-                    curs.execute("""CREATE TABLE chats (
-                                    chat_id SERIAL PRIMARY KEY,
-                                    reciever VARCHAR(255) NOT NULL
-                                    )
-                                """)
-                    self.sqlConnection.commit()
-                    curs.execute(""" CREATE TABLE history (
-                                    chat_id SERIAL,
-                                    FOREIGN KEY (chat_id) REFERENCES chats(chat_id),
-                                    sender_name VARCHAR(255) NOT NULL,
-                                    msg TEXT NOT NULL,
-                                    t TIMESTAMP NOT NULL
-                                    )
-                                """) # Any otherrelevent name for time ?
-                    curs.execute("""ALTER TABLE history ALTER COLUMN t SET DEFAULT now();""")
-                    self.sqlConnection.commit()
-                    curs.close()
-                else:
-                    self.sqlConnection = psycopg2.connect(
-                        database=username,
-                        host=self.HOST,
-                        user="postgres",
-                        password="password",
-                        port="5432"
-                    )
+                self.sqlConnection = psycopg2.connect(
+                    database=username,
+                    host=self.HOST,
+                    user="postgres",
+                    password="password",
+                    port="5432"
+                )
+                curs = self.sqlConnection.cursor()
+                curs.execute("""CREATE TABLE chats (
+                                chat_id SERIAL PRIMARY KEY,
+                                reciever VARCHAR(255) NOT NULL
+                                )
+                            """)
+                self.sqlConnection.commit()
+                curs.execute(""" CREATE TABLE history (
+                                chat_id SERIAL,
+                                FOREIGN KEY (chat_id) REFERENCES chats(chat_id),
+                                sender_name VARCHAR(255) NOT NULL,
+                                msg TEXT NOT NULL,
+                                t TIMESTAMP NOT NULL
+                                )
+                            """) # Any otherrelevent name for time ?
+                curs.execute("""ALTER TABLE history ALTER COLUMN t SET DEFAULT now();""")
+                self.sqlConnection.commit()
+                curs.close()
+            else:
+                self.sqlConnection = psycopg2.connect(
+                    database=username,
+                    host=self.HOST,
+                    user="postgres",
+                    password="password",
+                    port="5432"
+                )
+
+            print(self.sqlConnection)
 
         except KeyboardInterrupt:
             print("Caught keyboard interrupt, exiting")
