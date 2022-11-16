@@ -20,11 +20,11 @@ class Message:
 class Client:
     def __init__(self) -> None:
         self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM) # the client's socket
-        self.HOST = "localhost"  # The server's hostname or IP address
-        self.PORT = 6000  # The port used by the server
+        self.HOST = "192.168.103.215"  # The server's hostname or IP address
+        self.PORT = 61002  # The port used by the server
         self.username = None
         self.receiver = None # who is the client talking to. make receiver a class for dms and groups.
-        self.connToDB = None # database connection object
+        self.sqlConnection = None # database connection object
         # add fields to remember username and password to auto-login next time. (use a local client-specific database/file to store local client stuff)
         
     def login(self) -> None:
@@ -44,31 +44,33 @@ class Client:
                 else: 
                     break
 
-                self.connToDB = psycopg2.connect(
-                    host="localhost",
-                    user="postgres",
-                    password="pass",
-                    port="5432"
-                )
                 if newuser:
-                    self.connToDB.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
-                    curs = self.connToDB.cursor()
+                    self.sqlConnection = psycopg2.connect(
+                        host=self.HOST,
+                        user="postgres",
+                        password="password",
+                        port="5432"
+                    )
+                    self.sqlConnection.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
+                    curs = self.sqlConnection.cursor()
                     curs.execute("CREATE DATABASE " + username.lower())
-                    self.connToDB.commit()
-                    self.connToDB.close()
-                    self.connToDB = psycopg2.connect(
-                                                database=username,
-                                                host="localhost",
-                                                user="postgres",
-                                                password="pass",
-                                                port="5432")
-                    curs = self.connToDB.cursor()
+                    self.sqlConnection.commit()
+                    self.sqlConnection.close()
+
+                    self.sqlConnection = psycopg2.connect(
+                        database=username,
+                        host="localhost",
+                        user="postgres",
+                        password="pass",
+                        port="5432"
+                    )
+                    curs = self.sqlConnection.cursor()
                     curs.execute("""CREATE TABLE chats (
                                     chat_id SERIAL PRIMARY KEY,
                                     reciever VARCHAR(255) NOT NULL
                                     )
                                 """)
-                    self.connToDB.commit()
+                    self.sqlConnection.commit()
                     curs.execute(""" CREATE TABLE history (
                                     chat_id SERIAL,
                                     FOREIGN KEY (chat_id) REFERENCES chats(chat_id),
@@ -78,8 +80,17 @@ class Client:
                                     )
                                 """) # Any otherrelevent name for time ?
                     curs.execute("""ALTER TABLE history ALTER COLUMN t SET DEFAULT now();""")
-                    self.connToDB.commit()
+                    self.sqlConnection.commit()
                     curs.close()
+                else:
+                    self.sqlConnection = psycopg2.connect(
+                        database=username,
+                        host="localhost",
+                        user="postgres",
+                        password="pass",
+                        port="5432"
+                    )
+                    
         except KeyboardInterrupt:
             print("Caught keyboard interrupt, exiting")
 
@@ -90,11 +101,11 @@ class Client:
         to_send = Message(self.username, self.receiver, input)
         print(to_send)
         
-        curs = self.connToDB.cursor()
+        curs = self.sqlConnection.cursor()
         curs.execute("""SELECT (chat_id) FROM chats WHERE reciever=%s""",(self.receiver))
         chat_id = curs.fetchall()[0][0]
         curs.execute(""" INSERT INTO history (chat_id, sender_name, msg) VALUES (%s,%s,%s)""", (chat_id, to_send.sender, to_send.message))
-        self.connToDB.commit()
+        self.sqlConnection.commit()
         curs.close()
         
         self.s.sendall(str(to_send).encode())
@@ -106,11 +117,11 @@ class Client:
         data = json.loads(self.s.recv(1024).decode())
         # self.receiver = data['Sender'] # update receiver to whoever sent the message
         
-        curs = self.connToDB.cursor()
+        curs = self.sqlConnection.cursor()
         curs.execute("""SELECT (chat_id) FROM chats WHERE reciever=%s""",(self.receiver))
         chat_id = curs.fetchall()[0][0]
         curs.execute(""" INSERT INTO history (chat_id, sender_name, msg) VALUES (%s,%s,%s)""", (chat_id, data['Sender'], data['Message']))
-        self.connToDB.commit()
+        self.sqlConnection.commit()
         curs.close()
         
         sys.stdout.write(data['Sender'] + ": " + data['Message'] + '\n')
@@ -143,7 +154,7 @@ class Client:
         except KeyboardInterrupt:
             print("Exiting")
             self.s.close()
-            self.connToDB.close()
+            self.sqlConnection.close()
 
     def display(self):
         sys.stdout.write(">>> ")
@@ -155,14 +166,14 @@ class Client:
             self.receiver = sys.stdin.readline()[:-1]
             if self.receiver not in [None, ""]:
                 # add a method to check whether the reciever exists or not
-                curs = self.connToDB.cursor()
+                curs = self.sqlConnection.cursor()
                 curs.execute("""INSERT INTO chats (reciever) VALUES (%s)""", (self.receiver))
-                self.connToDB.commit()
+                self.sqlConnection.commit()
                 curs.close()
                 break
             
         # chat_id to be updated
-        curs = self.connToDB.cursor()
+        curs = self.sqlConnection.cursor()
         curs.execute("""SELECT (chat_id) FROM chats WHERE reciever=%s""",(self.receiver))
         chat_id = curs.fetchall()[0][0]
         curs.execute(""" SELECT (%s, sender_name, msg, t) FROM history ORDER BY t LIMIT 20""",(chat_id))
