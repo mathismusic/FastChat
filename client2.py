@@ -104,7 +104,7 @@ class Client:
         print(to_send)
         
         curs = self.sqlConnection.cursor()
-        curs.execute(f"SELECT (chat_id) FROM chats WHERE reciever={self.receiver}")
+        curs.execute(f"SELECT (chat_id) FROM chats WHERE receiver={self.receiver}")
         chat_id = curs.fetchall()[0][0]
         curs.execute(f"INSERT INTO history (chat_id, sender_name, msg) VALUES ({chat_id},{to_send.sender},{to_send.message})")
         self.sqlConnection.commit()
@@ -120,7 +120,7 @@ class Client:
         # self.receiver = data['Sender'] # update receiver to whoever sent the message
         
         curs = self.sqlConnection.cursor()
-        curs.execute(f"SELECT (chat_id) FROM chats WHERE reciever={self.receiver}",)
+        curs.execute(f"SELECT (chat_id) FROM chats WHERE receiver={self.receiver}",)
         chat_id = curs.fetchall()[0][0]
         curs.execute(f"INSERT INTO history (chat_id, sender_name, msg) VALUES ({chat_id}, {data['Sender']}, {data['Message']}")
         self.sqlConnection.commit()
@@ -167,7 +167,7 @@ class Client:
         while True:
             self.receiver = sys.stdin.readline()[:-1]
             if self.receiver not in [None, ""]:
-                # add a method to check whether the reciever exists or not
+                # add a method to check whether the receiver exists or not
                 curs = self.sqlConnection.cursor()
                 curs.execute(f"INSERT INTO chats (receiver) VALUES ({self.receiver})")
                 self.sqlConnection.commit()
@@ -176,7 +176,7 @@ class Client:
             
         # chat_id to be updated
         curs = self.sqlConnection.cursor()
-        curs.execute(f"SELECT (chat_id) FROM chats WHERE reciever={self.receiver}")
+        curs.execute(f"SELECT (chat_id) FROM chats WHERE receiver={self.receiver}")
         chat_id = curs.fetchall()[0][0]
         curs.execute(f"SELECT ({chat_id}, sender_name, msg, t) FROM history ORDER BY t LIMIT 20")
         messeges = curs.fetchall()
