@@ -104,9 +104,9 @@ class Client:
         print(to_send)
         
         curs = self.sqlConnection.cursor()
-        curs.execute("""SELECT (chat_id) FROM chats WHERE reciever=%s""",(self.receiver))
+        curs.execute(f"SELECT (chat_id) FROM chats WHERE reciever={self.receiver}")
         chat_id = curs.fetchall()[0][0]
-        curs.execute(""" INSERT INTO history (chat_id, sender_name, msg) VALUES (%s,%s,%s)""", (chat_id, to_send.sender, to_send.message))
+        curs.execute(f"INSERT INTO history (chat_id, sender_name, msg) VALUES ({chat_id},{to_send.sender},{to_send.message})")
         self.sqlConnection.commit()
         curs.close()
         
@@ -120,9 +120,9 @@ class Client:
         # self.receiver = data['Sender'] # update receiver to whoever sent the message
         
         curs = self.sqlConnection.cursor()
-        curs.execute("""SELECT (chat_id) FROM chats WHERE reciever=%s""",(self.receiver))
+        curs.execute(f"SELECT (chat_id) FROM chats WHERE reciever={self.receiver}",)
         chat_id = curs.fetchall()[0][0]
-        curs.execute(""" INSERT INTO history (chat_id, sender_name, msg) VALUES (%s,%s,%s)""", (chat_id, data['Sender'], data['Message']))
+        curs.execute(f"INSERT INTO history (chat_id, sender_name, msg) VALUES ({chat_id}, {data['Sender']}, {data['Message']}")
         self.sqlConnection.commit()
         curs.close()
         
@@ -169,16 +169,16 @@ class Client:
             if self.receiver not in [None, ""]:
                 # add a method to check whether the reciever exists or not
                 curs = self.sqlConnection.cursor()
-                curs.execute("""INSERT INTO chats (reciever) VALUES (%s)""", (self.receiver))
+                curs.execute(f"INSERT INTO chats (receiver) VALUES ({self.receiver})")
                 self.sqlConnection.commit()
                 curs.close()
                 break
             
         # chat_id to be updated
         curs = self.sqlConnection.cursor()
-        curs.execute("""SELECT (chat_id) FROM chats WHERE reciever=%s""",(self.receiver))
+        curs.execute(f"SELECT (chat_id) FROM chats WHERE reciever={self.receiver}")
         chat_id = curs.fetchall()[0][0]
-        curs.execute(""" SELECT (%s, sender_name, msg, t) FROM history ORDER BY t LIMIT 20""",(chat_id))
+        curs.execute(f"SELECT ({chat_id}, sender_name, msg, t) FROM history ORDER BY t LIMIT 20")
         messeges = curs.fetchall()
         for message in messeges:
             print(message)
