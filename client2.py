@@ -67,7 +67,7 @@ class Client:
                 curs = self.sqlConnection.cursor()
                 curs.execute("""CREATE TABLE chats (
                                 chat_id SERIAL PRIMARY KEY,
-                                reciever VARCHAR(255) NOT NULL
+                                receiver VARCHAR(255) NOT NULL
                                 )
                             """)
                 self.sqlConnection.commit()
