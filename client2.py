@@ -59,9 +59,9 @@ class Client:
 
                     self.sqlConnection = psycopg2.connect(
                         database=username,
-                        host="localhost",
+                        host=self.HOST,
                         user="postgres",
-                        password="pass",
+                        password="password",
                         port="5432"
                     )
                     curs = self.sqlConnection.cursor()
@@ -85,12 +85,12 @@ class Client:
                 else:
                     self.sqlConnection = psycopg2.connect(
                         database=username,
-                        host="localhost",
+                        host=self.HOST,
                         user="postgres",
-                        password="pass",
+                        password="password",
                         port="5432"
                     )
-                    
+
         except KeyboardInterrupt:
             print("Caught keyboard interrupt, exiting")
 
