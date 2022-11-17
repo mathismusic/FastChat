@@ -67,7 +67,7 @@ class Client:
                 curs = self.sqlConnection.cursor()
                 curs.execute("""CREATE TABLE chats (
                                 chat_id SERIAL PRIMARY KEY,
-                                receiver VARCHAR(255) NOT NULL
+                                receiver VARCHAR(255) NOT NULL UNIQUE
                                 )
                             """)
                 self.sqlConnection.commit()
@@ -169,7 +169,7 @@ class Client:
             if self.receiver not in [None, ""]:
                 # add a method to check whether the receiver exists or not
                 curs = self.sqlConnection.cursor()
-                curs.execute("INSERT INTO chats (receiver) VALUES (%s)",(self.receiver))
+                curs.execute("""INSERT INTO chats (receiver) SELECT (%s) WHERE NOT EXISTS (SELECT FROM chats WHERE receiver=%s) ON CONFLICT DO NOTHING;""",(self.receiver,self.receiver))
                 self.sqlConnection.commit()
                 curs.close()
                 break
@@ -178,7 +178,7 @@ class Client:
         curs = self.sqlConnection.cursor()
         curs.execute("SELECT (chat_id) FROM chats WHERE receiver=%s",(self.receiver))
         chat_id = curs.fetchall()[0][0]
-        curs.execute("SELECT (%s, sender_name, msg, t) FROM history ORDER BY t LIMIT 20",(chat_id))
+        curs.execute(f"SELECT (chat_id, sender_name, msg, t) FROM history WHERE chat_id={chat_id} ORDER BY t LIMIT 20")
         messeges = curs.fetchall()
         for message in messeges:
             print(message)
