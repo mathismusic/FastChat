@@ -9,6 +9,10 @@ import psycopg2
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 
 class Message:
+    """
+    This is the standard format of all messages transferred between servers and clients.
+    It is in standard JSON format with attributes Sender, Recipient and Message
+    """
     def __init__(self, sender, rec, msg) -> None:
         self.sender =  sender
         self.recipient = rec
@@ -18,7 +22,13 @@ class Message:
         return json.dumps({"Sender": self.sender, "Recipient": self.recipient, "Message": self.message})
 
 class Client:
+    """
+    This represents the Client/User of the app. Consists of attributes host, port of server and 
+    (unique) username of client, along with a 'receiver' which is the current receiver. 
+    """
+
     def __init__(self) -> None:
+        """Constructor"""
         self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM) # the client's socket
         self.HOST = "192.168.103.215"  # The server's hostname or IP address
         self.PORT = 61001  # The port used by the server
@@ -28,6 +38,8 @@ class Client:
         # add fields to remember username and password to auto-login next time. (use a local client-specific database/file to store local client stuff)
         
     def login(self) -> None:
+        """Asks login details from user, and sends them to server for authentication.
+        Enter -1 if new user. Also connects to the PostGRESQL server for database handling."""
         self.s.connect((self.HOST, self.PORT)) # go to port self.PORT on machine self.HOST
         try:
             while(True):
@@ -101,6 +113,10 @@ class Client:
         self.username = username
 
     def sendMessage(self, input):
+        """
+        Sends message, which inserts into the message history of the sender
+        :param: input - The message string
+        """
         # recipient = input("Continue conversation with: ")
         to_send = Message(self.username, self.receiver, input)
         print(to_send)
@@ -118,6 +134,9 @@ class Client:
             print("This user doesn't use FastChat :)")
 
     def receiveMessage(self):
+        """
+        Receives message, adding it into the chat history of receiver
+        """
         data = json.loads(self.s.recv(1024).decode())
         # self.receiver = data['Sender'] # update receiver to whoever sent the message
         
@@ -132,6 +151,8 @@ class Client:
         sys.stdout.flush()
 
     def serve(self):
+        """Main serve loop, specify who you would like to talk to, and -cd to change the recipient."""
+
         print('Welcome to the chat. Say -e to exit the chat at any time, or simply use ctrl+C.', end='')
         self.get_recipient()
         self.display()
@@ -161,10 +182,13 @@ class Client:
             self.sqlConnection.close()
 
     def display(self):
+        """Prompt"""
         sys.stdout.write(">>> ")
         sys.stdout.flush()     
 
     def get_recipient(self):
+        """Get all messages from history from a given contact, ordered by time, and display"""
+        
         sys.stdout.write('\nWhom do you want to talk to? ') 
         while True:
             self.receiver = sys.stdin.readline()[:-1]
