@@ -97,6 +97,7 @@ class Server:
         finally:
             self.selector.close()
 
-    # ------------------------------------------------- #
+server = Server()
+server.run()
 
 
