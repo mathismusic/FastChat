@@ -21,7 +21,7 @@ class Client:
     def __init__(self) -> None:
         self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM) # the client's socket
         self.HOST = "192.168.103.215"  # The server's hostname or IP address
-        self.PORT = 61002  # The port used by the server
+        self.PORT = 61001  # The port used by the server
         self.username = None
         self.receiver = None # who is the client talking to. make receiver a class for dms and groups.
         self.sqlConnection = None # database connection object
@@ -40,8 +40,9 @@ class Client:
                 self.s.sendall(json.dumps(login_data).encode())
                 data = self.s.recv(1024).decode()
                 if (data == "invalid"):
-                    print("This username already exists. Please try again." if newuser else "Invalid username, please try again.")
+                    print("This username already exists, please try again." if newuser else "Invalid username or password, please try again.")
                 else: 
+                    print()
                     break
 
             if newuser:
@@ -53,6 +54,7 @@ class Client:
                 )
                 self.sqlConnection.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
                 curs = self.sqlConnection.cursor()
+                curs.execute("DROP DATABASE IF EXISTS " + username.lower())
                 curs.execute("CREATE DATABASE " + username.lower())
                 self.sqlConnection.commit()
                 self.sqlConnection.close()
@@ -176,7 +178,7 @@ class Client:
             
         # chat_id to be updated
         curs = self.sqlConnection.cursor()
-        curs.execute("SELECT (chat_id) FROM chats WHERE receiver=%s",(self.receiver))
+        curs.execute(r"SELECT (chat_id) FROM chats WHERE receiver=%s",(self.receiver))
         chat_id = curs.fetchall()[0][0]
         curs.execute(f"SELECT (chat_id, sender_name, msg, t) FROM history WHERE chat_id={chat_id} ORDER BY t LIMIT 20")
         messeges = curs.fetchall()
