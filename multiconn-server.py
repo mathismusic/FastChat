@@ -5,8 +5,9 @@ import socket
 from selectors import DefaultSelector, EVENT_READ, EVENT_WRITE, SelectorKey
 from types import SimpleNamespace
 import json
+import psycopg2
+from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 
-users: dict[str, str] = {"A": "ok", "B": "ook", "C": "c", "D": "d", "E": "e", "F": "f"}
 onlineUserSockets: dict[str, socket.socket] = {}
 
 class Server:
@@ -15,7 +16,40 @@ class Server:
         self.HOST = "192.168.103.215"  # The server's hostname or IP address
         self.PORT = 61001  # The port used by the server
         self.selector = DefaultSelector()
+        self.userDBName = "users"
 
+        self.databaseServer = psycopg2.connect(
+            host=self.HOST,
+            user="postgres",
+            password="password",
+            port="5432"
+        )
+
+        self.databaseServer.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
+        curs = self.databaseServer.cursor()
+        curs.execute("CREATE DATABASE IF NOT EXISTS " + self.userDBName)
+        self.databaseServer.commit()
+        curs.close()
+
+        self.databaseServer = psycopg2.connect(
+            database=self.userDBName,
+            host=self.HOST,
+            user="postgres",
+            password="password",
+            port="5432"
+        )
+
+
+        curs = self.databaseServer.cursor()
+        curs.execute("""CREATE TABLE IF NOT EXISTS usercreds (
+                        userid SERIAL PRIMARY KEY,
+                        username VARCHAR(256) NOT NULL,
+                        userpwd VARCHAR(256) NOT NULL,
+                        isonline BOOLEAN DEFAULT 1
+                    );""")
+        self.databaseServer.commit()
+        curs.close()
+        
         self.sock.bind((self.HOST, self.PORT))
         self.sock.listen()
         print(f"Listening on {(self.HOST, self.PORT)}")
@@ -27,7 +61,8 @@ class Server:
         username = user_credentials['Username']
         password = user_credentials['Password']
         newuser = user_credentials['Newuser']
-            
+          
+        # TODO :- this block needs to be changed 
         if newuser:
             if username in users.keys():
                 conn.sendall("invalid".encode())
@@ -41,6 +76,11 @@ class Server:
             return
 
         print(f"Accepted connection from {addr} with username {username}")
+        
+        curs = self.databaseServer.cursor()
+        curs.execute("INSERT INTO (username, userpwd) VALUES (%s,%s)",(username,password))
+        curs.close()
+        
         onlineUserSockets[username] = conn # change to bool = True
         conn.sendall('valid'.encode())
         conn.setblocking(False)
