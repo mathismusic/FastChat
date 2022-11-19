@@ -106,7 +106,7 @@ class Client:
         print(to_send)
         
         curs = self.sqlConnection.cursor()
-        curs.execute("SELECT (chat_id) FROM chats WHERE receiver=%s",(self.receiver))
+        curs.execute("SELECT (chat_id) FROM chats WHERE receiver=%s",(self.receiver,))
         chat_id = curs.fetchall()[0][0]
         curs.execute("INSERT INTO history (chat_id, sender_name, msg) VALUES (%s,%s,%s)",(chat_id,to_send.sender,to_send.message))
         self.sqlConnection.commit()
@@ -122,7 +122,7 @@ class Client:
         # self.receiver = data['Sender'] # update receiver to whoever sent the message
         
         curs = self.sqlConnection.cursor()
-        curs.execute("SELECT (chat_id) FROM chats WHERE receiver=%s",(self.receiver))
+        curs.execute("SELECT (chat_id) FROM chats WHERE receiver=%s",(self.receiver,))
         chat_id = curs.fetchall()[0][0]
         curs.execute("INSERT INTO history (chat_id, sender_name, msg) VALUES (%s,%s,%s)",(chat_id, data['Sender'], data['Message']))
         self.sqlConnection.commit()
@@ -178,7 +178,7 @@ class Client:
             
         # chat_id to be updated
         curs = self.sqlConnection.cursor()
-        curs.execute(r"SELECT (chat_id) FROM chats WHERE receiver=%s",(self.receiver))
+        curs.execute(r"SELECT (chat_id) FROM chats WHERE receiver=%s",(self.receiver,))
         chat_id = curs.fetchall()[0][0]
         curs.execute(f"SELECT (chat_id, sender_name, msg, t) FROM history WHERE chat_id={chat_id} ORDER BY t LIMIT 20")
         messeges = curs.fetchall()
