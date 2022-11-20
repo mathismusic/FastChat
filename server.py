@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 from sys import argv, exit
 import socket
 from selectors import DefaultSelector, EVENT_READ, EVENT_WRITE, SelectorKey
@@ -7,14 +5,16 @@ from types import SimpleNamespace
 import json
 import psycopg2
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
+from color_codes import *
 
+# 192.168.103.215
 onlineUserSockets: dict[str, socket.socket] = {}
-
+users = {}
 class Server:
     def __init__(self) -> None:
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.HOST = "192.168.103.215"  # The server's hostname or IP address
-        self.PORT = 61001  # The port used by the server
+        self.HOST = "localhost"  # The server's hostname or IP address
+        self.PORT = 61001 if len(argv) == 1 else 61002  # The port used by the server
         self.selector = DefaultSelector()
         self.userDBName = "users"
 
@@ -27,7 +27,9 @@ class Server:
 
         self.databaseServer.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
         curs = self.databaseServer.cursor()
-        curs.execute("CREATE DATABASE IF NOT EXISTS " + self.userDBName)
+        curs.execute("DROP DATABASE IF EXISTS " + self.userDBName)
+        curs.execute("CREATE DATABASE " + self.userDBName)
+        
         self.databaseServer.commit()
         curs.close()
 
@@ -45,7 +47,7 @@ class Server:
                         userid SERIAL PRIMARY KEY,
                         username VARCHAR(256) NOT NULL,
                         userpwd VARCHAR(256) NOT NULL,
-                        isonline BOOLEAN DEFAULT 1
+                        isonline INTEGER DEFAULT 1
                     );""")
         self.databaseServer.commit()
         curs.close()
@@ -66,19 +68,21 @@ class Server:
         if newuser:
             if username in users.keys():
                 conn.sendall("invalid".encode())
-                conn.close()
+                # conn.close()
+                print("yes1")
                 return
             else:
-                users[username] = password
+                users[username] = password # add user.
         elif (username not in users.keys() or password != users[username]):
             conn.sendall("invalid".encode())
-            conn.close()
+            # conn.close()
+            print("yes2")
             return
 
-        print(f"Accepted connection from {addr} with username {username}")
+        print("Accepted connection from " + RED + str(addr) + RESET + " with username "  + GREEN + username + RESET)
         
         curs = self.databaseServer.cursor()
-        curs.execute("INSERT INTO (username, userpwd) VALUES (%s,%s)",(username,password))
+        curs.execute("INSERT INTO \"usercreds\" (username, userpwd) VALUES (%s,%s)",(username,password))
         curs.close()
         
         onlineUserSockets[username] = conn # change to bool = True
@@ -106,7 +110,7 @@ class Server:
                         onlineUserSockets[msg['Recipient']].sendall(recv_data)
                     print(f"Client {data.username} to {msg['Recipient']}:", msg['Message'])
                 else:
-                    print(f"Closing connection {data.username} ({data.addr}) - username {data.username}")
+                    print("Closing connection from address " + RED + str(data.addr) + RESET + ", username " + GREEN + data.username + RESET)
                     self.selector.unregister(sock)
                     sock.close()
             if mask & EVENT_WRITE:
@@ -118,7 +122,8 @@ class Server:
                     sent = sock.send(data.outb)  # Should be ready to write
                     data.outb = data.outb[sent:]
         except BrokenPipeError as e:
-            print(f"Client {data.username} closed the connection.")
+            print(f"Client " + GREEN + data.username + RESET + " closed the connection.")
+            return
 
     def run(self):
         # lsock.setblocking(False)
@@ -129,14 +134,14 @@ class Server:
                 events = self.selector.select(timeout=None)
                 for key, mask in events:
                     if key.data is None:
-                        self.accept_client(key.fileobj)
+                        self.accept_client()
                     else:
                         self.serve_client(key, mask)
         except KeyboardInterrupt:
             print("Caught keyboard interrupt, exiting")
-        finally:
-            self.selector.close()
-
+        
+        self.selector.close()
+        
 server = Server()
 server.run()
 

@@ -4,7 +4,7 @@ import socket
 import json
 import sys
 from select import select
-#from color_codes import *
+from color_codes import *
 import psycopg2
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 
@@ -30,8 +30,8 @@ class Client:
     def __init__(self) -> None:
         """Constructor"""
         self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM) # the client's socket
-        self.HOST = "192.168.103.215"  # The server's hostname or IP address
-        self.PORT = 61001  # The port used by the server
+        self.HOST = "localhost"  # The server's hostname or IP address
+        self.PORT = 61001 if len(sys.argv) == 1 else 61002  # The port used by the server
         self.username = None
         self.receiver = None # who is the client talking to. make receiver a class for dms and groups.
         self.sqlConnection = None # database connection object
@@ -43,16 +43,19 @@ class Client:
         self.s.connect((self.HOST, self.PORT)) # go to port self.PORT on machine self.HOST
         try:
             while(True):
-                username = input("Username (type -1 to create an account): ")
+                username = input(BOLD_BLACK + "Username (type -1 to create an account): " + MAGENTA)
                 newuser = (username == '-1')
                 if newuser:
-                    username = input("Choose username: ")
-                password = input(("Choose " if newuser else "") + "Password: ")
+                    username = input(BOLD_BLACK + "Choose username: " + MAGENTA)
+                password = input(BOLD_BLACK + ("Choose " if newuser else "") + "Password: " + MAGENTA)
+                print(RESET)
                 login_data = {"Username" : username, "Password" : password, "Newuser" : newuser}
                 self.s.sendall(json.dumps(login_data).encode())
+                
                 data = self.s.recv(1024).decode()
+                print(data)
                 if (data == "invalid"):
-                    print("This username already exists, please try again." if newuser else "Invalid username or password, please try again.")
+                    print(CYAN + ("This username already exists, please try again." if newuser else "Invalid username or password, please try again.") + RESET)
                 else: 
                     print()
                     break
@@ -109,6 +112,7 @@ class Client:
 
         except KeyboardInterrupt:
             print("Caught keyboard interrupt, exiting")
+            sys.exit(1)
 
         self.username = username
 
@@ -131,13 +135,15 @@ class Client:
         self.s.sendall(str(to_send).encode())
         status = self.s.recv(1024).decode()
         if status == "invalid_recipient": 
-            print("This user doesn't use FastChat :)")
+            print(BOLD_YELLOW + "This user doesn't use FastChat :/" + RESET)
 
     def receiveMessage(self):
         """
         Receives message, adding it into the chat history of receiver
         """
-        data = json.loads(self.s.recv(1024).decode())
+        msg = self.s.recv(1024).decode()
+        if msg is not None: 
+            data = json.loads(msg)
         # self.receiver = data['Sender'] # update receiver to whoever sent the message
         
         curs = self.sqlConnection.cursor()
@@ -153,7 +159,7 @@ class Client:
     def serve(self):
         """Main serve loop, specify who you would like to talk to, and -cd to change the recipient."""
 
-        print('Welcome to the chat. Say -e to exit the chat at any time, or simply use ctrl+C.', end='')
+        print(WHITE + GREEN_BACKGROUND + 'Welcome to the chat. Say -e to exit the chat at any time, or simply use ctrl+C.', end='' + RESET)
         self.get_recipient()
         self.display()
 
@@ -172,26 +178,31 @@ class Client:
                         if input == "-cd": # user would like to change the dm
                             self.receiver = None
                             self.get_recipient()
+                        elif input == "-e": # user wants to exit
+                            print(BOLD_BLUE + "Thank you for using FastChat!" + RESET)
+                            return
                         else:
                             self.sendMessage(input)
                         self.display()
                         
         except KeyboardInterrupt:
-            print("Exiting")
+            print(BOLD_HIGH_BLACK + "Exiting" + RESET)
             self.s.close()
             self.sqlConnection.close()
+            sys.exit(1)
 
     def display(self):
         """Prompt"""
-        sys.stdout.write(">>> ")
+        sys.stdout.write(MAGENTA + ">>> " + RESET)
         sys.stdout.flush()     
 
     def get_recipient(self):
         """Get all messages from history from a given contact, ordered by time, and display"""
         
-        sys.stdout.write('\nWhom do you want to talk to? ') 
+        sys.stdout.write(CYAN + '\nWhom do you want to talk to? ' + BLUE) 
         while True:
             self.receiver = sys.stdin.readline()[:-1]
+            print(RESET)
             if self.receiver not in [None, ""]:
                 # add a method to check whether the receiver exists or not
                 curs = self.sqlConnection.cursor()
@@ -207,7 +218,7 @@ class Client:
         curs.execute(f"SELECT (chat_id, sender_name, msg, t) FROM history WHERE chat_id={chat_id} ORDER BY t LIMIT 20")
         messeges = curs.fetchall()
         for message in messeges:
-            print(message)
+            print(message) # color differently based on user or receiver sent
         curs.close()
 
 client = Client()
