@@ -9,7 +9,7 @@ from color_codes import *
 
 # 192.168.103.215
 onlineUserSockets: dict[str, socket.socket] = {}
-users = {}
+#users = {}
 class Server:
     """Server class. Contains host address and port, 
     along with a connection to the PSQL server hosted locally."""
@@ -50,11 +50,10 @@ class Server:
                         userid SERIAL PRIMARY KEY,
                         username VARCHAR(256) NOT NULL,
                         userpwd VARCHAR(256) NOT NULL,
-                        isonline INTEGER DEFAULT 1
                     );""")
         self.databaseServer.commit()
         curs.close()
-        
+        # isonline INTEGER DEFAULT 1
         self.sock.bind((self.HOST, self.PORT))
         self.sock.listen()
         print(f"Listening on {(self.HOST, self.PORT)}")
@@ -71,25 +70,28 @@ class Server:
           
         # TODO :- this block needs to be changed 
         if newuser:
-            if username in users.keys():
+            curs = self.databaseServer.cursor()
+            curs.execute("SELECT * FROM \"usercreds\" WHERE username=%s",(username,))
+            data = curs.fetchall()
+            if len(data)!=0:
                 conn.sendall("invalid".encode())
-                # conn.close()
                 print("yes1")
                 return
             else:
-                users[username] = password # add user.
-        elif (username not in users.keys() or password != users[username]):
+                curs.execute("INSERT INTO \"usercreds\" (username,userpwd) VALUES (%s, %s)",(username,password)) # add user.
+        elif (len(data)==0 or password != data[0][2]):
             conn.sendall("invalid".encode())
             # conn.close()
             print("yes2")
             return
 
+
         print("Accepted connection from " + RED + str(addr) + RESET + " with username "  + GREEN + username + RESET)
         self.numClients += 1
         
-        curs = self.databaseServer.cursor()
-        curs.execute("INSERT INTO \"usercreds\" (username, userpwd) VALUES (%s,%s)",(username,password))
-        curs.close()
+        # curs = self.databaseServer.cursor()
+        # curs.execute("INSERT INTO \"usercreds\" (username, userpwd) VALUES (%s,%s)",(username,password))
+        # curs.close()
         
         onlineUserSockets[username] = conn # change to bool = True
         conn.sendall('valid'.encode())
@@ -110,7 +112,10 @@ class Server:
                 if recv_data != b'':
                     data.outb += recv_data
                     msg = json.loads(recv_data.decode())
-                    if msg['Recipient'] not in users:
+                    curs = self.databaseServer.cursor()
+                    curs.execute("SELECT * FROM \"usercreds\" WHERE username=%s",(msg['Recipient'],))
+                    data = curs.fetchall()
+                    if len(data)==0:
                         sock.sendall('invalid_recipient'.encode())
                         return
                     elif msg['Recipient'] not in onlineUserSockets:
