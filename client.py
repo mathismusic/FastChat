@@ -141,8 +141,9 @@ class Client:
         Receives message, adding it into the chat history of receiver
         """
         msg = self.s.recv(1024).decode()
-        if msg is not None: 
-            data = json.loads(msg)
+        if msg is not None:
+            try:data = json.loads(msg)
+            except:print(YELLOW + "Error: " + RESET + msg + "\n\n")
         # self.receiver = data['Sender'] # update receiver to whoever sent the message
         
         curs = self.sqlConnection.cursor()
@@ -216,7 +217,7 @@ class Client:
             curs.close()
             break
             
-        wantsHistory = input(YELLOW + "Just a quick chat, or do you want to see previous messages? (type 'quick' if the former, else 'all')" + CYAN)
+        wantsHistory = input(YELLOW + "Just a quick chat, or do you want to see previous messages? (type 'quick' if the former, else 'all') " + CYAN)
         print(RESET)
 
         if wantsHistory == 'quick':

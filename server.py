@@ -49,7 +49,7 @@ class Server:
         curs.execute("""CREATE TABLE IF NOT EXISTS usercreds (
                         userid SERIAL PRIMARY KEY,
                         username VARCHAR(256) NOT NULL,
-                        userpwd VARCHAR(256) NOT NULL,
+                        userpwd VARCHAR(256) NOT NULL
                     );""")
         self.databaseServer.commit()
         curs.close()
