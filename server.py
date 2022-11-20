@@ -13,7 +13,7 @@ users = {}
 class Server:
     def __init__(self) -> None:
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.HOST = "localhost"  # The server's hostname or IP address
+        self.HOST = "192.168.103.215"  # The server's hostname or IP address
         self.PORT = 61001 if len(argv) == 1 else 61002  # The port used by the server
         self.selector = DefaultSelector()
         self.userDBName = "users"
@@ -141,7 +141,7 @@ class Server:
             print("Caught keyboard interrupt, exiting")
         
         self.selector.close()
-        
+
 server = Server()
 server.run()
 
