@@ -141,9 +141,10 @@ class Client:
         Receives message, adding it into the chat history of receiver
         """
         msg = self.s.recv(1024).decode()
-        if msg is not None:
+        data = ""
+        if msg not in [None, ""]:
             try:data = json.loads(msg)
-            except:print(YELLOW + "Error: " + RESET + msg + "\n\n")
+            except:print(YELLOW + "Error: " + RESET + "|" + msg + "|\n\n")
         # self.receiver = data['Sender'] # update receiver to whoever sent the message
         
         curs = self.sqlConnection.cursor()
