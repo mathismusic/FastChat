@@ -123,19 +123,20 @@ class Client:
         """
         # recipient = input("Continue conversation with: ")
         to_send = Message(self.username, self.receiver, input)
-        print(to_send)
+        # print(to_send)
         
+        self.s.sendall(str(to_send).encode())
+        status = self.s.recv(1024).decode()
+        if status == "invalid_recipient": 
+            print(BOLD_YELLOW + "This user doesn't use FastChat :/" + RESET)
+            return
+
         curs = self.sqlConnection.cursor()
         curs.execute("SELECT (chat_id) FROM chats WHERE receiver=%s",(self.receiver,))
         chat_id = curs.fetchall()[0][0]
         curs.execute("INSERT INTO history (chat_id, sender_name, msg) VALUES (%s,%s,%s)",(chat_id,to_send.sender,to_send.message))
         self.sqlConnection.commit()
         curs.close()
-        
-        self.s.sendall(str(to_send).encode())
-        status = self.s.recv(1024).decode()
-        if status == "invalid_recipient": 
-            print(BOLD_YELLOW + "This user doesn't use FastChat :/" + RESET)
 
     def receiveMessage(self):
         """
@@ -153,7 +154,7 @@ class Client:
         self.sqlConnection.commit()
         curs.close()
         
-        sys.stdout.write(data['Sender'] + ": " + data['Message'] + '\n')
+        sys.stdout.write(MAGENTA + ">>> " + BLUE + data['Sender'] + ": " + data['Message'] + '\n' + RESET)
         sys.stdout.flush()
 
     def serve(self):
@@ -170,6 +171,7 @@ class Client:
                 
                 for input in inputs:
                     if input is self.s:
+                        print()
                         self.receiveMessage()
                         self.display()
                         
@@ -193,23 +195,28 @@ class Client:
 
     def display(self):
         """Prompt"""
-        sys.stdout.write(MAGENTA + ">>> " + RESET)
+        sys.stdout.write(MAGENTA + ">>> You: " + GREEN)
         sys.stdout.flush()     
 
     def get_recipient(self):
         """Get all messages from history from a given contact, ordered by time, and display"""
         
-        sys.stdout.write(CYAN + '\nWhom do you want to talk to? ' + BLUE) 
         while True:
+            sys.stdout.write(CYAN + '\nWhom do you want to talk to? ' + BLUE) 
             self.receiver = sys.stdin.readline()[:-1]
             print(RESET)
-            if self.receiver not in [None, ""]:
-                # add a method to check whether the receiver exists or not
-                curs = self.sqlConnection.cursor()
-                curs.execute("""INSERT INTO chats (receiver) SELECT (%s) WHERE NOT EXISTS (SELECT FROM chats WHERE receiver=%s) ON CONFLICT DO NOTHING;""",(self.receiver,self.receiver))
-                self.sqlConnection.commit()
-                curs.close()
-                break
+            if self.receiver == self.username:
+                print(GREEN + 'Self messaging is not allowed yet.' + RESET)
+                continue
+            if self.receiver in [None, ""]:
+                continue
+            
+            # add a method to check whether the receiver exists or not
+            curs = self.sqlConnection.cursor()
+            curs.execute("""INSERT INTO chats (receiver) SELECT (%s) WHERE NOT EXISTS (SELECT FROM chats WHERE receiver=%s) ON CONFLICT DO NOTHING;""",(self.receiver,self.receiver))
+            self.sqlConnection.commit()
+            curs.close()
+            break
             
         # chat_id to be updated
         curs = self.sqlConnection.cursor()
