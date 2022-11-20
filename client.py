@@ -1,9 +1,7 @@
-# echo-client.py
-
 import socket
 import json
 import sys
-from select import select
+import select
 from color_codes import *
 import psycopg2
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
@@ -167,7 +165,7 @@ class Client:
         try:
             while True:
                 input_streams = [self.s, sys.stdin]
-                inputs = select(input_streams, [], [], 180)[0] # remove timeout?
+                inputs = select.select(input_streams, [], [], 180)[0] # remove timeout?
                 
                 for input in inputs:
                     if input is self.s:
@@ -226,7 +224,7 @@ class Client:
 
         # chat_id to be updated -> what?
         curs = self.sqlConnection.cursor()
-        curs.execute(r"SELECT (chat_id) FROM chats WHERE receiver=%s",(self.receiver,))
+        curs.execute("SELECT (chat_id) FROM chats WHERE receiver=%s",(self.receiver,))
         chat_id = curs.fetchall()[0][0]
         curs.execute(f"SELECT (chat_id, sender_name, msg, t) FROM history WHERE chat_id={chat_id} ORDER BY t LIMIT 20")
         messages = curs.fetchall()
