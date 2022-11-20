@@ -218,13 +218,19 @@ class Client:
             curs.close()
             break
             
-        # chat_id to be updated
+        wantsHistory = input(YELLOW + "Just a quick chat, or do you want to see previous messages? (type 'quick' if the former, else 'all')" + CYAN)
+        print(RESET)
+
+        if wantsHistory == 'quick':
+            return
+            
+        # chat_id to be updated -> what?
         curs = self.sqlConnection.cursor()
         curs.execute(r"SELECT (chat_id) FROM chats WHERE receiver=%s",(self.receiver,))
         chat_id = curs.fetchall()[0][0]
         curs.execute(f"SELECT (chat_id, sender_name, msg, t) FROM history WHERE chat_id={chat_id} ORDER BY t LIMIT 20")
-        messeges = curs.fetchall()
-        for message in messeges:
+        messages = curs.fetchall()
+        for message in messages:
             print(message) # color differently based on user or receiver sent
         curs.close()
 
