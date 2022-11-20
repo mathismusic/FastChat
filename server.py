@@ -18,6 +18,7 @@ class Server:
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.HOST = "192.168.103.215"  # The server's hostname or IP address
         self.PORT = 61001 if len(argv) == 1 else 61002  # The port used by the server
+        self.numClients = 0
         self.selector = DefaultSelector()
         self.userDBName = "users"
 
@@ -27,7 +28,6 @@ class Server:
             password="password",
             port="5432"
         )
-
         self.databaseServer.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
         curs = self.databaseServer.cursor()
         curs.execute("DROP DATABASE IF EXISTS " + self.userDBName)
@@ -85,6 +85,7 @@ class Server:
             return
 
         print("Accepted connection from " + RED + str(addr) + RESET + " with username "  + GREEN + username + RESET)
+        self.numClients += 1
         
         curs = self.databaseServer.cursor()
         curs.execute("INSERT INTO \"usercreds\" (username, userpwd) VALUES (%s,%s)",(username,password))
@@ -120,6 +121,7 @@ class Server:
                 else:
                     print("Closing connection from address " + RED + str(data.addr) + RESET + ", username " + GREEN + data.username + RESET)
                     self.selector.unregister(sock)
+                    self.numClients -= 1
                     sock.close()
             if mask & EVENT_WRITE:
                 if data.outb:
@@ -149,6 +151,9 @@ class Server:
             print("Caught keyboard interrupt, exiting")
         
         self.selector.close()
+
+    def num_active_clients(self):
+        return self.numClients
 
 server = Server()
 server.run()
