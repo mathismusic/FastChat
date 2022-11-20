@@ -98,6 +98,9 @@ class Server:
         self.selector.register(conn, events, data=data)
 
     def serve_client(self, key: SelectorKey, mask: bool):
+        """
+        Main serve loop, monitors client connections.
+        """
         sock: socket = key.fileobj
         data: SimpleNamespace = key.data
         try:
