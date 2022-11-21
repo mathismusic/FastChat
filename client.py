@@ -28,7 +28,7 @@ class Client:
     def __init__(self) -> None:
         """Constructor"""
         self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM) # the client's socket
-        self.HOST = "192.168.103.215"  # The server's hostname or IP address
+        self.HOST = "localhost"  # The server's hostname or IP address
         self.PORT = 61001 if len(sys.argv) == 1 else 61002  # The port used by the server
         self.username = None
         self.receiver = None # who is the client talking to. make receiver a class for dms and groups.
@@ -141,10 +141,14 @@ class Client:
         Receives message, adding it into the chat history of receiver
         """
         msg = self.s.recv(1024).decode()
-        data = ""
-        if msg not in [None, ""]:
-            try:data = json.loads(msg)
-            except:print(YELLOW + "Error: " + RESET + "|" + msg + "|\n\n")
+        data = {}
+        if msg in [None, ""]:
+            print(YELLOW + "msg: " + RESET + "|" + msg + "|")
+            return
+
+        print(YELLOW + "msg: " + RESET + "|" + msg + "|")
+        data = json.loads(msg)    
+        print(YELLOW + "data: " + RESET + "|" +data + "|\n\n")
         # self.receiver = data['Sender'] # update receiver to whoever sent the message
         
         curs = self.sqlConnection.cursor()
