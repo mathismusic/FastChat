@@ -68,46 +68,70 @@ class Server:
         self.sock.listen()
         print(f"Listening on {(self.HOST, self.PORT)}")
 
-    def accept_client(self):
-        """Accepts the connection request from a client, after correct authentication.
-        Creates a new account on corresponding request."""
-        conn, addr = self.sock.accept()  # Should be ready to read
-        msg = conn.recv(1024).decode()
-        user_credentials: dict = json.loads(msg)
-        username = user_credentials['Username']
-        password = user_credentials['Password']
-        newuser = user_credentials['Newuser']
+    # def accept_client(self):
+    #     """Accepts the connection request from a client, after correct authentication.
+    #     Creates a new account on corresponding request."""
+    #     conn, addr = self.sock.accept()  # Should be ready to read
+    #     msg = conn.recv(1024).decode()
+    #     user_credentials: dict = json.loads(msg)
+    #     username = user_credentials['Username']
+    #     password = user_credentials['Password']
+    #     newuser = user_credentials['Newuser']
           
-        # TODO :- this block needs to be changed
-        curs = self.databaseServer.cursor()
-        curs.execute("SELECT * FROM \"usercreds\" WHERE username=%s",(username,))
-        data = curs.fetchall()
-        if newuser:
-            if len(data)!=0:
-                conn.sendall("invalid".encode())
-                print("yes1")
-                return
-            else:
-                print("yes3")
-                curs.execute("INSERT INTO \"usercreds\" (username,userpwd) VALUES (%s, %s)",(username,password)) # add user.
-                self.databaseServer.commit()
-        elif (len(data)==0 or password != data[0][2]):
-            conn.sendall("invalid".encode())
-            # conn.close()
-            print("yes2")
-            return
+    #     # TODO :- this block needs to be changed
+    #     curs = self.databaseServer.cursor()
+    #     curs.execute("SELECT * FROM \"usercreds\" WHERE username=%s",(username,))
+    #     data = curs.fetchall()
+    #     if newuser:
+    #         if len(data)!=0:
+    #             conn.sendall("invalid".encode())
+    #             print("yes1")
+    #             return
+    #         else:
+    #             print("yes3")
+    #             curs.execute("INSERT INTO \"usercreds\" (username,userpwd) VALUES (%s, %s)",(username,password)) # add user.
+    #             self.databaseServer.commit()
+    #     elif (len(data)==0 or password != data[0][2]):
+    #         conn.sendall("invalid".encode())
+    #         # conn.close()
+    #         print("yes2")
+    #         return
 
 
+    #     print("Accepted connection from " + RED + str(addr) + RESET + " with username "  + GREEN + username + RESET)
+    #     self.numClients += 1
+        
+    #     # curs = self.databaseServer.cursor()
+    #     # curs.execute("INSERT INTO \"usercreds\" (username, userpwd) VALUES (%s,%s)",(username,password))
+    #     # curs.close()
+        
+    #     onlineUserSockets[username] = conn # change to bool = True
+    #     conn.sendall('valid'.encode())
+        
+    #     conn.setblocking(False)
+    #     curs.execute("SELECT msgid,jsonmsg,sendtime FROM pending WHERE receiver=%s ORDER BY sendtime",(username,))
+        
+    #     messages = curs.fetchall()
+    #     onlineUserSockets[username].sendall(json.dumps(messages,default=str).encode())
+    #     # onlineUserSockets[username].sendall(str(len(messages)).encode())
+    #     for mess in messages:
+    #         # onlineUserSockets[username].sendall(json.dumps(mess[3]).encode())
+    #         curs.execute("DELETE FROM pending WHERE msgid=%s",(mess[0],))
+    #         self.databaseServer.commit()
+    #     curs.close()
+    #     data = SimpleNamespace(username=username, addr=addr, inb=b"", outb=b"")
+    #     events = EVENT_READ | EVENT_WRITE
+    #     self.selector.register(conn, events, data=data)
+
+    def accept_client(self, conn: socket, addr, username: str, password: str):
         print("Accepted connection from " + RED + str(addr) + RESET + " with username "  + GREEN + username + RESET)
         self.numClients += 1
-        
-        # curs = self.databaseServer.cursor()
-        # curs.execute("INSERT INTO \"usercreds\" (username, userpwd) VALUES (%s,%s)",(username,password))
-        # curs.close()
         
         onlineUserSockets[username] = conn # change to bool = True
         conn.sendall('valid'.encode())
         
+        curs = self.databaseServer.cursor()
+        curs.execute("SELECT * FROM \"usercreds\" WHERE username=%s",(username,))
         conn.setblocking(False)
         curs.execute("SELECT msgid,jsonmsg,sendtime FROM pending WHERE receiver=%s ORDER BY sendtime",(username,))
         
@@ -122,7 +146,6 @@ class Server:
         data = SimpleNamespace(username=username, addr=addr, inb=b"", outb=b"")
         events = EVENT_READ | EVENT_WRITE
         self.selector.register(conn, events, data=data)
-
     def serve_client(self, key: SelectorKey, mask: bool):
         """
         Main serve loop, monitors client connections.
