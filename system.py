@@ -27,8 +27,8 @@ class System:
         )
         self.databaseServer.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
         curs = self.databaseServer.cursor()
-        curs.execute("DROP DATABASE IF EXISTS " + self.userDBName)
-        curs.execute("CREATE DATABASE " + self.userDBName)
+        #curs.execute("DROP DATABASE IF EXISTS " + self.userDBName)
+        #curs.execute("CREATE DATABASE " + self.userDBName)
         
         self.databaseServer.commit()
         curs.close()
@@ -48,6 +48,15 @@ class System:
                         username VARCHAR(256) NOT NULL,
                         userpwd VARCHAR(256) NOT NULL
                     );""") # isonline INTEGER DEFAULT 1
+        self.databaseServer.commit()
+        curs.execute("""CREATE TABLE IF NOT EXISTS pending (
+                        msgid SERIAL NOT NULL PRIMARY KEY,
+                        sender VARCHAR(256) NOT NULL,
+                        receiver VARCHAR(256) NOT NULL,
+                        jsonmsg TEXT NOT NULL,
+                        sendtime TIMESTAMP NOT NULL
+                    );""")
+        curs.execute("ALTER TABLE pending ALTER COLUMN sendtime SET DEFAULT now();")
         self.databaseServer.commit()
         curs.close()
 

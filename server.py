@@ -17,25 +17,25 @@ class Server:
         """Constructor, initializes to a default IP and port. Creates empty databases."""
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.HOST = "localhost"  # The server's hostname or IP address
-        self.PORT = 61000 if len(argv) == 1 else 61002  # The port used by the server
+        self.PORT = 61001 if len(argv) == 1 else 61002  # The port used by the server
         self.numClients = 0
         self.selector = DefaultSelector()
-        self.userDBName = "users"
+        self.userDBName = "fastchat_users"
 
-        self.databaseServer = psycopg2.connect(
-            host=self.HOST,
-            user="postgres",
-            password="password",
-            port="5432"
-        )
-        self.databaseServer.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
-        curs = self.databaseServer.cursor()
-        #curs.execute("DROP DATABASE IF EXISTS " + self.userDBName)
-        #curs.execute("CREATE DATABASE IF NOT EXISTS " + self.userDBName)
+        # self.databaseServer = psycopg2.connect(
+        #     host=self.HOST,
+        #     user="postgres",
+        #     password="password",
+        #     port="5432"
+        # )
+        # self.databaseServer.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
+        # curs = self.databaseServer.cursor()
+        # #curs.execute("DROP DATABASE IF EXISTS " + self.userDBName)
+        # #curs.execute("CREATE DATABASE IF NOT EXISTS " + self.userDBName)
         
-        self.databaseServer.commit()
-        curs.close()
-        self.databaseServer.close()
+        # self.databaseServer.commit()
+        # curs.close()
+        # self.databaseServer.close()
 
         self.databaseServer = psycopg2.connect(
             database=self.userDBName,
@@ -46,24 +46,24 @@ class Server:
         )
 
 
-        curs = self.databaseServer.cursor()
-        curs.execute("""CREATE TABLE IF NOT EXISTS usercreds (
-                        userid SERIAL PRIMARY KEY,
-                        username VARCHAR(256) NOT NULL UNIQUE,
-                        userpwd VARCHAR(256) NOT NULL
-                    );""")
-        self.databaseServer.commit()
-        curs.execute("""CREATE TABLE IF NOT EXISTS pending (
-                        msgid SERIAL NOT NULL PRIMARY KEY,
-                        sender VARCHAR(256) NOT NULL,
-                        receiver VARCHAR(256) NOT NULL,
-                        jsonmsg TEXT NOT NULL,
-                        sendtime TIMESTAMP NOT NULL
-                    );""")
-        curs.execute("ALTER TABLE pending ALTER COLUMN sendtime SET DEFAULT now();")
-        self.databaseServer.commit()
-        curs.close()
-        # isonline INTEGER DEFAULT 1
+        # curs = self.databaseServer.cursor()
+        # curs.execute("""CREATE TABLE IF NOT EXISTS usercreds (
+        #                 userid SERIAL PRIMARY KEY,
+        #                 username VARCHAR(256) NOT NULL UNIQUE,
+        #                 userpwd VARCHAR(256) NOT NULL
+        #             );""")
+        # self.databaseServer.commit()
+        # curs.execute("""CREATE TABLE IF NOT EXISTS pending (
+        #                 msgid SERIAL NOT NULL PRIMARY KEY,
+        #                 sender VARCHAR(256) NOT NULL,
+        #                 receiver VARCHAR(256) NOT NULL,
+        #                 jsonmsg TEXT NOT NULL,
+        #                 sendtime TIMESTAMP NOT NULL
+        #             );""")
+        # curs.execute("ALTER TABLE pending ALTER COLUMN sendtime SET DEFAULT now();")
+        # self.databaseServer.commit()
+        # curs.close()
+        # # isonline INTEGER DEFAULT 1
         self.sock.bind((self.HOST, self.PORT))
         self.sock.listen()
         print(f"Listening on {(self.HOST, self.PORT)}")
@@ -123,7 +123,7 @@ class Server:
     #     events = EVENT_READ | EVENT_WRITE
     #     self.selector.register(conn, events, data=data)
 
-    def accept_client(self, conn: socket, addr, username: str, password: str):
+    def accept_client(self, conn: socket.socket, addr, username: str, password: str):
         print("Accepted connection from " + RED + str(addr) + RESET + " with username "  + GREEN + username + RESET)
         self.numClients += 1
         
