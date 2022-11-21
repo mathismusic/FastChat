@@ -1,7 +1,7 @@
 import socket
 import json
 import sys
-import ast
+import datetime
 import select
 from color_codes import *
 import psycopg2
@@ -110,19 +110,18 @@ class Client:
             print(self.sqlConnection)
             
             m = self.s.recv(8192).decode()
-            print (m)
             msgs = json.loads(m)
             
             for msg in msgs:
                 # pendingmsg = self.s.recv(1024).decode()
                 # msg = json.loads(pendingmsg)
-                d = json.loads(msg[3])
+                d = json.loads(msg[1])
                 curs = self.sqlConnection.cursor()
                 curs.execute("""INSERT INTO chats (receiver) SELECT (%s) WHERE NOT EXISTS (SELECT FROM chats WHERE receiver=%s) ON CONFLICT DO NOTHING;""",(d['Sender'],d['Sender']))
                 self.sqlConnection.commit()
                 curs.execute("SELECT (chat_id) FROM chats WHERE receiver=%s",(d['Sender'],))
                 chat_id = curs.fetchall()[0][0]
-                curs.execute("INSERT INTO history (chat_id, sender_name, msg) VALUES (%s,%s,%s)",(chat_id,d['Sender'],d['Message']))
+                curs.execute("INSERT INTO history (chat_id, sender_name, msg, t) VALUES (%s,%s,%s,%s)",(chat_id,d['Sender'],d['Message'],datetime.datetime.strptime(msg[2], '%Y-%m-%d %H:%M:%S.%f')))
                 self.sqlConnection.commit()
                 curs.close()
                 
@@ -251,9 +250,9 @@ class Client:
         curs = self.sqlConnection.cursor()
         curs.execute("SELECT (chat_id) FROM chats WHERE receiver=%s",(self.receiver,))
         chat_id = curs.fetchall()[0][0]
-        curs.execute(f"SELECT (chat_id, sender_name, msg, t) FROM history WHERE chat_id={chat_id} ORDER BY t LIMIT 20")
+        curs.execute(f"SELECT (chat_id, sender_name, msg, t) FROM history WHERE chat_id={chat_id} ORDER BY t DESC LIMIT 20")
         messages = curs.fetchall()
-        for message in messages:
+        for message in reversed(messages):
             print(message) # color differently based on user or receiver sent
         curs.close()
 

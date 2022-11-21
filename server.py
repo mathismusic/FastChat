@@ -109,7 +109,7 @@ class Server:
         conn.sendall('valid'.encode())
         
         conn.setblocking(False)
-        curs.execute("SELECT * FROM pending WHERE receiver=%s ORDER BY sendtime",(username,))
+        curs.execute("SELECT msgid,jsonmsg,sendtime FROM pending WHERE receiver=%s ORDER BY sendtime",(username,))
         
         messages = curs.fetchall()
         onlineUserSockets[username].sendall(json.dumps(messages,default=str).encode())
@@ -118,7 +118,7 @@ class Server:
             # onlineUserSockets[username].sendall(json.dumps(mess[3]).encode())
             curs.execute("DELETE FROM pending WHERE msgid=%s",(mess[0],))
             self.databaseServer.commit()
-        
+        curs.close()
         data = SimpleNamespace(username=username, addr=addr, inb=b"", outb=b"")
         events = EVENT_READ | EVENT_WRITE
         self.selector.register(conn, events, data=data)
