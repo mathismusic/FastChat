@@ -1,6 +1,7 @@
 import socket
 import json
 import sys
+import ast
 import select
 from color_codes import *
 import psycopg2
@@ -29,7 +30,7 @@ class Client:
         """Constructor"""
         self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM) # the client's socket
         self.HOST = "localhost"  # The server's hostname or IP address
-        self.PORT = 61001 if len(sys.argv) == 1 else 61002  # The port used by the server
+        self.PORT = 61000 if len(sys.argv) == 1 else 61002  # The port used by the server
         self.username = None
         self.receiver = None # who is the client talking to. make receiver a class for dms and groups.
         self.sqlConnection = None # database connection object
@@ -107,6 +108,24 @@ class Client:
                 )
 
             print(self.sqlConnection)
+            
+            m = self.s.recv(8192).decode()
+            print (m)
+            msgs = json.loads(m)
+            
+            for msg in msgs:
+                # pendingmsg = self.s.recv(1024).decode()
+                # msg = json.loads(pendingmsg)
+                d = json.loads(msg[3])
+                curs = self.sqlConnection.cursor()
+                curs.execute("""INSERT INTO chats (receiver) SELECT (%s) WHERE NOT EXISTS (SELECT FROM chats WHERE receiver=%s) ON CONFLICT DO NOTHING;""",(d['Sender'],d['Sender']))
+                self.sqlConnection.commit()
+                curs.execute("SELECT (chat_id) FROM chats WHERE receiver=%s",(d['Sender'],))
+                chat_id = curs.fetchall()[0][0]
+                curs.execute("INSERT INTO history (chat_id, sender_name, msg) VALUES (%s,%s,%s)",(chat_id,d['Sender'],d['Message']))
+                self.sqlConnection.commit()
+                curs.close()
+                
 
         except KeyboardInterrupt:
             print("Caught keyboard interrupt, exiting")

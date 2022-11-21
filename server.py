@@ -8,7 +8,7 @@ from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 from color_codes import *
 
 # 192.168.103.215
-onlineUserSockets = {}
+onlineUserSockets= {}
 #users = {}
 class Server:
     """Server class. Contains host address and port, 
@@ -17,7 +17,7 @@ class Server:
         """Constructor, initializes to a default IP and port. Creates empty databases."""
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.HOST = "localhost"  # The server's hostname or IP address
-        self.PORT = 61001 if len(argv) == 1 else 61002  # The port used by the server
+        self.PORT = 61000 if len(argv) == 1 else 61002  # The port used by the server
         self.numClients = 0
         self.selector = DefaultSelector()
         self.userDBName = "users"
@@ -52,6 +52,15 @@ class Server:
                         username VARCHAR(256) NOT NULL UNIQUE,
                         userpwd VARCHAR(256) NOT NULL
                     );""")
+        self.databaseServer.commit()
+        curs.execute("""CREATE TABLE IF NOT EXISTS pending (
+                        msgid SERIAL NOT NULL PRIMARY KEY,
+                        sender VARCHAR(256) NOT NULL,
+                        receiver VARCHAR(256) NOT NULL,
+                        jsonmsg TEXT NOT NULL,
+                        sendtime TIMESTAMP NOT NULL
+                    );""")
+        curs.execute("ALTER TABLE pending ALTER COLUMN sendtime SET DEFAULT now();")
         self.databaseServer.commit()
         curs.close()
         # isonline INTEGER DEFAULT 1
@@ -98,7 +107,18 @@ class Server:
         
         onlineUserSockets[username] = conn # change to bool = True
         conn.sendall('valid'.encode())
+        
         conn.setblocking(False)
+        curs.execute("SELECT * FROM pending WHERE receiver=%s ORDER BY sendtime",(username,))
+        
+        messages = curs.fetchall()
+        onlineUserSockets[username].sendall(json.dumps(messages,default=str).encode())
+        # onlineUserSockets[username].sendall(str(len(messages)).encode())
+        for mess in messages:
+            # onlineUserSockets[username].sendall(json.dumps(mess[3]).encode())
+            curs.execute("DELETE FROM pending WHERE msgid=%s",(mess[0],))
+            self.databaseServer.commit()
+        
         data = SimpleNamespace(username=username, addr=addr, inb=b"", outb=b"")
         events = EVENT_READ | EVENT_WRITE
         self.selector.register(conn, events, data=data)
@@ -122,9 +142,12 @@ class Server:
                         sock.sendall('invalid_recipient'.encode())
                         return
                     elif msg['Recipient'] not in onlineUserSockets:
-                        pass # todo, must save message in queue - dict(username, [messages to be sent sorted by timestamp]) and send when user comes online (in accept_client when they log in)
+                        curs.execute("INSERT INTO pending (sender,receiver,jsonmsg) VALUES (%s,%s,%s) ",(msg['Sender'],msg['Recipient'],recv_data.decode()))
+                        self.databaseServer.commit()
+                         # todo, must save message in queue - dict(username, [messages to be sent sorted by timestamp]) and send when user comes online (in accept_client when they log in)
                     else: # user is online
                         onlineUserSockets[msg['Recipient']].sendall(recv_data)
+                    curs.close()
                     print(f"Client {data.username} to {msg['Recipient']}:", msg['Message'])
                 else:
                     print("Closing connection from address " + RED + str(data.addr) + RESET + ", username " + GREEN + data.username + RESET)
