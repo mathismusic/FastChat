@@ -5,19 +5,14 @@ from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 
 class System:
     def __init__(self, n: int = 1) -> None:
-        self.HOST = ['192.168.103.215'] # where this is running.
+        self.HOST = '192.168.103.215' # where this is running.
         self.SERVER_HOSTS = ['192.168.103.215']*n
         self.SERVER_PORTS = [i for i in range(61001, 61001 + n)]
-        self.LB_HOST = ['192.168.103.215']
-        self.LB_PORT = 61001 + n
-
-        self.userDBName = "fastchat_users" # name of the psql database to store user details
-        
-        # initialize servers and load balancer
-        self.servers = [Server()]*n
-        self.loadBalancer = LoadBalancer(servers=self.servers, host=self.LB_HOST, port=self.LB_PORT, database=self.userDBName, algorithm='least-load')
+        self.LB_HOST = '192.168.103.215'
+        self.LB_PORT = 61001 + 10*n
 
         # create database. Since this is the first time FastChat opens, any old databases with the same name will be deleted if exists
+        self.userDBName = "fastchat_users" # name of the psql database to store user details
 
         self.databaseServer = psycopg2.connect(
             host=self.HOST,
@@ -27,8 +22,8 @@ class System:
         )
         self.databaseServer.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
         curs = self.databaseServer.cursor()
-        #curs.execute("DROP DATABASE IF EXISTS " + self.userDBName)
-        #curs.execute("CREATE DATABASE " + self.userDBName)
+        curs.execute("DROP DATABASE IF EXISTS " + self.userDBName)
+        curs.execute("CREATE DATABASE " + self.userDBName)
         
         self.databaseServer.commit()
         curs.close()
@@ -59,6 +54,10 @@ class System:
         curs.execute("ALTER TABLE pending ALTER COLUMN sendtime SET DEFAULT now();")
         self.databaseServer.commit()
         curs.close()
+
+        # initialize servers and load balancer
+        self.servers = [Server()]*n
+        self.loadBalancer = LoadBalancer(servers=self.servers, host=self.LB_HOST, port=self.LB_PORT, database=self.userDBName, algorithm='least-load')
 
 if __name__ == '__main__':
     n = 5

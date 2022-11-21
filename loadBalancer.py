@@ -12,6 +12,7 @@ class LoadBalancer:
         self.servers = list(servers)
         self.userDBName = database
         self.algorithm = algorithm
+        print(self.HOST)
     
     # the load balancer does the work of accepting clients when they try to login
     def accept_client(self):
@@ -54,4 +55,8 @@ class LoadBalancer:
         server.accept_client(conn, addr, username, password)
 
     def choose_server(self) -> Server:
-        return self.servers[0]
+        ans = self.servers[0]
+        for server in self.servers:
+            if server.num_active_clients() < ans.num_active_clients():
+                ans = server
+        return ans

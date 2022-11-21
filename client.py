@@ -31,6 +31,9 @@ class Client:
         self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM) # the client's socket
         self.HOST = "192.168.103.215"  # The server's hostname or IP address
         self.PORT = 61001 if len(sys.argv) == 1 else 61002  # The port used by the server
+        self.LB_HOST = "192.168.103.215"  # The load balancer's hostname or IP address
+        self.LB_PORT = 61011 if len(sys.argv) == 1 else 61012  # The port used by the load balancer
+        
         self.username = None
         self.receiver = None # who is the client talking to. make receiver a class for dms and groups.
         self.sqlConnection = None # database connection object
@@ -39,7 +42,7 @@ class Client:
     def login(self) -> None:
         """Asks login details from user, and sends them to server for authentication.
         Enter -1 if new user. Also connects to the PostGRESQL server for database handling."""
-        self.s.connect((self.HOST, self.PORT)) # go to port self.PORT on machine self.HOST
+        self.s.connect((self.LB_HOST, self.LB_PORT)) # go to port self.PORT on machine self.HOST
         try:
             while(True):
                 username = input(BOLD_BLACK + "Username (type -1 to create an account): " + MAGENTA)

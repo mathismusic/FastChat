@@ -67,6 +67,7 @@ class Server:
         self.sock.bind((self.HOST, self.PORT))
         self.sock.listen()
         print(f"Listening on {(self.HOST, self.PORT)}")
+        self.run()
 
     # def accept_client(self):
     #     """Accepts the connection request from a client, after correct authentication.
@@ -199,7 +200,8 @@ class Server:
                 events = self.selector.select(timeout=None)
                 for key, mask in events:
                     if key.data is None:
-                        self.accept_client()
+                        # self.accept_client()
+                        pass
                     else:
                         self.serve_client(key, mask)
         except KeyboardInterrupt:
@@ -210,7 +212,8 @@ class Server:
     def num_active_clients(self):
         return self.numClients
 
-server = Server()
-server.run()
+if __name__ == '__main__':
+    server = Server()
+    server.run()
 
 
