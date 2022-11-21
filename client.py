@@ -148,7 +148,7 @@ class Client:
 
         print(YELLOW + "msg: " + RESET + "|" + msg + "|")
         data = json.loads(msg)    
-        print(YELLOW + "data: " + RESET + "|" +data + "|\n\n")
+        print(YELLOW + "data: " + RESET + "|" + str(data) + "|\n\n")
         # self.receiver = data['Sender'] # update receiver to whoever sent the message
         
         curs = self.sqlConnection.cursor()

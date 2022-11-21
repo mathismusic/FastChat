@@ -8,7 +8,7 @@ from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 from color_codes import *
 
 # 192.168.103.215
-onlineUserSockets: dict[str, socket.socket] = {}
+onlineUserSockets = {}
 #users = {}
 class Server:
     """Server class. Contains host address and port, 
@@ -30,11 +30,12 @@ class Server:
         )
         self.databaseServer.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
         curs = self.databaseServer.cursor()
-        curs.execute("DROP DATABASE IF EXISTS " + self.userDBName)
-        curs.execute("CREATE DATABASE " + self.userDBName)
+        #curs.execute("DROP DATABASE IF EXISTS " + self.userDBName)
+        #curs.execute("CREATE DATABASE IF NOT EXISTS " + self.userDBName)
         
         self.databaseServer.commit()
         curs.close()
+        self.databaseServer.close()
 
         self.databaseServer = psycopg2.connect(
             database=self.userDBName,
@@ -48,7 +49,7 @@ class Server:
         curs = self.databaseServer.cursor()
         curs.execute("""CREATE TABLE IF NOT EXISTS usercreds (
                         userid SERIAL PRIMARY KEY,
-                        username VARCHAR(256) NOT NULL,
+                        username VARCHAR(256) NOT NULL UNIQUE,
                         userpwd VARCHAR(256) NOT NULL
                     );""")
         self.databaseServer.commit()
@@ -78,7 +79,9 @@ class Server:
                 print("yes1")
                 return
             else:
+                print("yes3")
                 curs.execute("INSERT INTO \"usercreds\" (username,userpwd) VALUES (%s, %s)",(username,password)) # add user.
+                self.databaseServer.commit()
         elif (len(data)==0 or password != data[0][2]):
             conn.sendall("invalid".encode())
             # conn.close()
@@ -114,8 +117,8 @@ class Server:
                     msg = json.loads(recv_data.decode())
                     curs = self.databaseServer.cursor()
                     curs.execute("SELECT * FROM \"usercreds\" WHERE username=%s",(msg['Recipient'],))
-                    data = curs.fetchall()
-                    if len(data)==0:
+                    userentry = curs.fetchall()
+                    if len(userentry)==0:
                         sock.sendall('invalid_recipient'.encode())
                         return
                     elif msg['Recipient'] not in onlineUserSockets:
@@ -127,6 +130,7 @@ class Server:
                     print("Closing connection from address " + RED + str(data.addr) + RESET + ", username " + GREEN + data.username + RESET)
                     self.selector.unregister(sock)
                     self.numClients -= 1
+                    onlineUserSockets.pop(data.username)
                     sock.close()
             if mask & EVENT_WRITE:
                 if data.outb:
