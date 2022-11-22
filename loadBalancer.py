@@ -2,6 +2,7 @@ import socket
 import json
 import psycopg2
 from server import Server
+from selectors import DefaultSelector, EVENT_READ, EVENT_WRITE, SelectorKey
 
 # load balancer server
 class LoadBalancer:
@@ -12,6 +13,7 @@ class LoadBalancer:
         self.servers = list(servers)
         self.userDBName = database
         self.algorithm = algorithm
+        self.selector = DefaultSelector()
         print(self.HOST)
     
     # the load balancer does the work of accepting clients when they try to login
@@ -65,3 +67,19 @@ class LoadBalancer:
             if server.num_active_clients() < ans.num_active_clients():
                 ans = server
         return ans
+    
+    def run(self):
+        # lsock.setblocking(False)
+        self.selector.register(fileobj=self.sock, events=EVENT_READ, data=None)
+
+        try:
+            while True:
+                events = self.selector.select(timeout=None)
+                for key, mask in events:
+                    if key.data is None:
+                        self.accept_client()
+                        
+        except KeyboardInterrupt:
+            print("Caught keyboard interrupt, exiting")
+        
+        self.selector.close()
