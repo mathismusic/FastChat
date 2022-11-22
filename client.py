@@ -21,7 +21,7 @@ class Client:
         self.HOST = "192.168.103.215"  # The server's hostname or IP address
         self.PORT = 61001 if len(sys.argv) == 1 else 61002  # The port used by the server
         self.LB_HOST = "192.168.103.215"  # The load balancer's hostname or IP address
-        self.LB_PORT = 61011 if len(sys.argv) == 1 else 61012  # The port used by the load balancer
+        self.LB_PORT = 61051 if len(sys.argv) == 1 else 61012  # The port used by the load balancer
         
         self.username = None
         self.receiver = None # who is the client talking to. make receiver a class for dms and groups.
@@ -58,7 +58,7 @@ class Client:
                     print(CYAN + ("This username already exists, please try again." if newuser else "Invalid username or password, please try again.") + RESET)
                 else: 
                     server_data = json.loads(data)
-                    self.s.connect((server_data['hostname'], server_data['port']))
+                    self.s.connect((server_data['hostname'], int(server_data['port'])))
                     self.s.sendall(json.dumps({"Username": username}).encode())
                     break
 

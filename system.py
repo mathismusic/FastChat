@@ -1,6 +1,7 @@
 from server import Server
 from loadBalancer import LoadBalancer
 import psycopg2
+import json
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 import threading
 import subprocess
@@ -9,9 +10,9 @@ class System:
     def __init__(self, n: int) -> None:
         self.HOST = '192.168.103.215' # where this is running.
         self.SERVER_HOSTS = ['192.168.103.215']*n
-        self.SERVER_PORTS = [i for i in range(61001, 61001 + n)]
+        self.SERVER_PORTS = [str(i) for i in range(61001, 61001 + n)]
         self.LB_HOST = '192.168.103.215'
-        self.LB_PORT = 61001 + 10*n
+        self.LB_PORT = str(61001 + 10*n)
 
         # create database. Since this is the first time FastChat opens, any old databases with the same name will be deleted if exists
         self.userDBName = "fastchat_users" # name of the psql database to store user details
@@ -59,12 +60,15 @@ class System:
         self.databaseServer.commit()
         curs.close()
 
-        # initialize servers and load balancer
-        self.servers = [Server(self.SERVER_HOSTS[i], self.SERVER_PORTS[i], self.userDBName) for i in range(n)]
+        # initialize server data and load balancer data
+        self.servers = [[self.SERVER_HOSTS[i], self.SERVER_PORTS[i], self.userDBName] for i in range(n)]
         for i in range(n):
-            subprocess.call('open terminal')
+            pass
+            # subprocess.call(['./start_server.sh', self.SERVER_HOSTS[i], self.SERVER_PORTS[i], self.userDBName])
         print("hello worlddd")
-        self.loadBalancer = LoadBalancer(servers=self.servers, host=self.LB_HOST, port=self.LB_PORT, database=self.userDBName, algorithm='least-load')
+        self.loadBalancer = [self.servers, self.LB_HOST, self.LB_PORT, self.userDBName, 'least-load']
+        print(json.dumps(self.loadBalancer))
+        subprocess.call(['./start_lb.sh', json.dumps(self.loadBalancer)])
 
         # threads: list[threading.Thread] = []
         # for i in range(n):
@@ -72,5 +76,5 @@ class System:
         #     threads[-1].start()
 
 if __name__ == '__main__':
-    n = 2
+    n = 5
     System(n)
