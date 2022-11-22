@@ -2,6 +2,8 @@ from server import Server
 from loadBalancer import LoadBalancer
 import psycopg2
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
+import threading
+import subprocess
 
 class System:
     def __init__(self, n: int) -> None:
@@ -59,8 +61,15 @@ class System:
 
         # initialize servers and load balancer
         self.servers = [Server(self.SERVER_HOSTS[i], self.SERVER_PORTS[i], self.userDBName) for i in range(n)]
+        for i in range(n):
+            subprocess.call('open terminal')
         print("hello worlddd")
         self.loadBalancer = LoadBalancer(servers=self.servers, host=self.LB_HOST, port=self.LB_PORT, database=self.userDBName, algorithm='least-load')
+
+        # threads: list[threading.Thread] = []
+        # for i in range(n):
+        #     threads.append(threading.Thread(target=self.servers[i].run, args=tuple()))
+        #     threads[-1].start()
 
 if __name__ == '__main__':
     n = 2

@@ -1,4 +1,4 @@
-from sys import argv, exit
+import sys
 import socket
 from selectors import DefaultSelector, EVENT_READ, EVENT_WRITE, SelectorKey
 from types import SimpleNamespace
@@ -18,7 +18,7 @@ class Server:
         """Constructor, initializes to a default IP and port. Creates empty databases."""
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.HOST = host  # The server's hostname or IP address
-        self.PORT = port  # The port used by the server
+        self.PORT = int(port)  # The port used by the server
         self.numClients = 0
         self.selector = DefaultSelector()
         self.userDBName = database
@@ -68,7 +68,6 @@ class Server:
         self.sock.bind((self.HOST, self.PORT))
         self.sock.listen()
         print(f"Listening on {(self.HOST, self.PORT)}")
-        self.run()
 
     def accept_client(self):
         """Accepts the connection request from a client, after correct authentication.
@@ -213,7 +212,7 @@ class Server:
         return self.numClients
 
 if __name__ == '__main__':
-    server = Server()
+    server = Server(sys.argv[1], sys.argv[2], sys.argv[3])
     server.run()
 
 
