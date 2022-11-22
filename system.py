@@ -41,7 +41,9 @@ class System:
         curs.execute("""CREATE TABLE IF NOT EXISTS usercreds (
                         userid SERIAL PRIMARY KEY,
                         username VARCHAR(256) NOT NULL,
-                        userpwd VARCHAR(256) NOT NULL
+                        userpwd VARCHAR(256) NOT NULL,
+                        userprivkey TEXT NOT NULL,
+                        userpubkey TEXT NOT NULL
                     );""") # isonline INTEGER DEFAULT 1
         self.databaseServer.commit()
         curs.execute("""CREATE TABLE IF NOT EXISTS pending (

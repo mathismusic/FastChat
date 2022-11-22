@@ -6,6 +6,7 @@ import select
 from color_codes import *
 import psycopg2
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
+from crypto import Crypt
 
 class Message:
     """
@@ -38,6 +39,7 @@ class Client:
         self.username = None
         self.receiver = None # who is the client talking to. make receiver a class for dms and groups.
         self.sqlConnection = None # database connection object
+        self.cryptography = Crypt() #cryptography object
         # add fields to remember username and password to auto-login next time. (use a local client-specific database/file to store local client stuff)
         
     def login(self) -> None:
@@ -52,7 +54,15 @@ class Client:
                     username = input(BOLD_BLACK + "Choose username: " + MAGENTA)
                 password = input(BOLD_BLACK + ("Choose " if newuser else "") + "Password: " + MAGENTA)
                 print(RESET)
-                login_data = {"Username" : username, "Password" : password, "Newuser" : newuser}
+                
+                priv_key = None
+                pub_key = None
+                if newuser:
+                    self.cryptography.gen_rsa_key()
+                    priv_key = self.cryptography.get_rsa_private_str(password).decode()
+                    pub_key = self.cryptography.get_rsa_public_str().decode()
+                
+                login_data = {"Username" : username, "Password" : password, "Newuser" : newuser, "Private_Key" : priv_key, "Public_Key" : pub_key}
                 self.s.sendall(json.dumps(login_data).encode())
                 
                 data = self.s.recv(1024).decode()
@@ -85,6 +95,14 @@ class Client:
                     port="5432"
                 )
                 curs = self.sqlConnection.cursor()
+                curs.execute("""CREATE TABLE private (
+                                privkey TEXT NOT NULL
+                                )
+                            """)
+                self.sqlConnection.commit()
+                curs.execute("""INSERT INTO private (privkey) VALUES %s""", priv_key)
+                self.sqlConnection.commit()
+
                 curs.execute("""CREATE TABLE chats (
                                 chat_id SERIAL PRIMARY KEY,
                                 receiver VARCHAR(255) NOT NULL UNIQUE
@@ -110,6 +128,11 @@ class Client:
                     password="password",
                     port="5432"
                 )
+                
+                curs = self.sqlConnection.cursor()
+                curs.execute("""SELECT privkey FROM private""")
+                encrypted_bytes = curs.fetchall()[0][0].encode()
+                self.cryptography.set_priv_key(password, encrypted_bytes)
 
             print(self.sqlConnection)
             
@@ -143,6 +166,7 @@ class Client:
         """
         # recipient = input("Continue conversation with: ")
         to_send = Message(self.username, self.receiver, input)
+        to_send = self.cryptography.main_encrypt(to_send)
         # print(to_send)
         
         self.s.sendall(str(to_send).encode())
@@ -169,7 +193,8 @@ class Client:
             return
 
         print(YELLOW + "msg: " + RESET + "|" + msg + "|")
-        data = json.loads(msg)    
+        data = json.loads(msg)   
+        data = self.cryptography.main_decrypt(data) 
         print(YELLOW + "data: " + RESET + "|" + str(data) + "|\n\n")
         # self.receiver = data['Sender'] # update receiver to whoever sent the message
         
@@ -237,7 +262,24 @@ class Client:
             if self.receiver in [None, ""]:
                 continue
             
-            # add a method to check whether the receiver exists or not
+
+            #check if recipient is actually present
+            usercreds_connection = psycopg2.connect(
+                    database='fastchat_users',
+                    host=self.HOST,
+                    user="postgres",
+                    password="password",
+                    port="5432"
+            )
+            usercreds_curs = usercreds_connection.cursor()
+            usercreds_curs.execute("""SELECT userpubkey FROM usercreds WHERE username=%s""", (self.receiver,))
+            pub_key_string = usercreds_curs.fetchall()
+            if(len(pub_key_string) == 0):
+                print("This user doesn't exist")
+                continue
+            else:
+                self.cryptography.get_rsa_encrypt_key(pub_key_string[0][0].encode())
+
             curs = self.sqlConnection.cursor()
             curs.execute("""INSERT INTO chats (receiver) SELECT (%s) WHERE NOT EXISTS (SELECT FROM chats WHERE receiver=%s) ON CONFLICT DO NOTHING;""",(self.receiver,self.receiver))
             self.sqlConnection.commit()
