@@ -14,7 +14,8 @@ class LoadBalancer:
         self.userDBName = database
         self.algorithm = algorithm
         self.selector = DefaultSelector()
-        print(self.HOST)
+        print("load balancer host: " + self.HOST)
+        self.run()
     
     # the load balancer does the work of accepting clients when they try to login
     def accept_client(self):
