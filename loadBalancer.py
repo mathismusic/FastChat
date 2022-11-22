@@ -24,6 +24,8 @@ class LoadBalancer:
         user_credentials: dict = json.loads(msg)
         username = user_credentials['Username']
         password = user_credentials['Password']
+        user_priv_key = user_credentials['Private_Key']
+        user_pub_key = user_credentials['Public_Key']
         newuser = user_credentials['Newuser']
 
         databaseServer = psycopg2.connect(
@@ -42,7 +44,7 @@ class LoadBalancer:
                 print("yes1")
                 return
             else:
-                curs.execute("INSERT INTO \"usercreds\" (username,userpwd) VALUES (%s, %s)",(username,password)) # add user.
+                curs.execute("INSERT INTO \"usercreds\" (username,userpwd,userprivkey, userpubkey) VALUES (%s, %s, %s, %s)",(username,password, user_priv_key, user_pub_key)) # add user.
                 databaseServer.commit()
         elif (len(data) == 0 or password != data[0][2]):
             conn.sendall("invalid".encode())
