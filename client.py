@@ -57,7 +57,9 @@ class Client:
                 if (data == "invalid"):
                     print(CYAN + ("This username already exists, please try again." if newuser else "Invalid username or password, please try again.") + RESET)
                 else: 
+                    print(data)
                     server_data = json.loads(data)
+                    self.s.close()
                     self.s.connect((server_data['hostname'], int(server_data['port'])))
                     self.s.sendall(json.dumps({"Username": username}).encode())
                     break

@@ -65,6 +65,7 @@ class LoadBalancer:
         # connect the user to server
         server = self.choose_server()
         conn.sendall(json.dumps({"hostname": server[0], "port": server[1]}).encode())
+        conn.close()
         # server.accept_client(conn, addr, username, password)
 
     def choose_server(self) -> list[str]:
