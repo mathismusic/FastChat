@@ -157,7 +157,7 @@ class Client:
         :param: input - The message string
         """
         # recipient = input("Continue conversation with: ")
-        to_send = Message(self.username, self.receiver, input)
+        to_send = Message(self.username, self.receiver, input, None)
         to_send = self.cryptography.main_encrypt(to_send)
         # print(to_send)
         
