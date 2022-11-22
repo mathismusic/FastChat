@@ -291,6 +291,7 @@ class Client:
             print(message) # color differently based on user or receiver sent
         curs.close()
 
-client = Client()
-client.login()
-client.serve()
+if __name__ == "__main__":
+    client = Client()
+    client.login()
+    client.serve()
