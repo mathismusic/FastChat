@@ -29,7 +29,7 @@ class LoadBalancer:
         conn, addr = self.sock.accept()  # Should be ready to read
 
         msg = conn.recv(8192).decode()
-        # print(msg)
+        print(msg)
         user_credentials: dict = json.loads(msg)
         
         username = user_credentials['Username']
@@ -57,7 +57,7 @@ class LoadBalancer:
                 curs.execute("INSERT INTO \"usercreds\" (username,userpwd,userprivkey, userpubkey) VALUES (%s, %s, %s, %s)",(username,password, user_priv_key, user_pub_key)) # add user.
                 databaseServer.commit()
         elif (len(data) == 0 or password != data[0][2]):
-            print(data[0][2])
+            # print(data[0][2])
             conn.sendall("invalid".encode())
             # conn.close()
             print("yes2")

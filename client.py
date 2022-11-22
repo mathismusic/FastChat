@@ -59,7 +59,8 @@ class Client:
                 else: 
                     print(data)
                     server_data = json.loads(data)
-                    # self.s.close()
+                    self.s.close()
+                    self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                     self.s.connect((server_data['hostname'], int(server_data['port'])))
                     self.s.sendall(json.dumps({"Username": username}).encode())
                     break
@@ -91,7 +92,7 @@ class Client:
                                 )
                             """)
                 self.sqlConnection.commit()
-                curs.execute("""INSERT INTO privatekey (privkey) VALUES %s""", priv_key)
+                curs.execute("""INSERT INTO privatekey (privkey) VALUES (%s)""", (priv_key,))
                 self.sqlConnection.commit()
 
                 curs.execute("""CREATE TABLE chats (
