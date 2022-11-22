@@ -62,5 +62,5 @@ class System:
         self.loadBalancer = LoadBalancer(servers=self.servers, host=self.LB_HOST, port=self.LB_PORT, database=self.userDBName, algorithm='least-load')
 
 if __name__ == '__main__':
-    n = 5
-    System(1)
+    n = 2
+    System(n)
