@@ -20,8 +20,10 @@ class LoadBalancer:
         Creates a new account on corresponding request. The accepted client is connected to a chosen server"""
         
         conn, addr = self.sock.accept()  # Should be ready to read
+
         msg = conn.recv(1024).decode()
         user_credentials: dict = json.loads(msg)
+        
         username = user_credentials['Username']
         password = user_credentials['Password']
         user_priv_key = user_credentials['Private_Key']
@@ -54,7 +56,8 @@ class LoadBalancer:
 
         # connect the user to server
         server = self.choose_server()
-        server.accept_client(conn, addr, username, password)
+        conn.sendall(json.dumps({"hostname": server.HOST, "port": server.PORT}).encode())
+        # server.accept_client(conn, addr, username, password)
 
     def choose_server(self) -> Server:
         ans = self.servers[0]
