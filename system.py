@@ -65,9 +65,9 @@ class System:
         for i in range(n):
             # pass
             subprocess.call(['./start_server.sh', self.SERVER_HOSTS[i], self.SERVER_PORTS[i], self.userDBName])
-        print("hello worlddd")
+        # print("hello worlddd")
         self.loadBalancer = [self.servers, self.LB_HOST, self.LB_PORT, self.userDBName, 'least-load']
-        print(json.dumps(self.loadBalancer))
+        # print(json.dumps(self.loadBalancer))
         subprocess.call(['./start_lb.sh', json.dumps(self.loadBalancer)])
 
         # threads: list[threading.Thread] = []
@@ -76,5 +76,5 @@ class System:
         #     threads[-1].start()
 
 if __name__ == '__main__':
-    n = 5
+    n = 1
     System(n)

@@ -59,7 +59,7 @@ class Client:
                 else: 
                     print(data)
                     server_data = json.loads(data)
-                    self.s.close()
+                    # self.s.close()
                     self.s.connect((server_data['hostname'], int(server_data['port'])))
                     self.s.sendall(json.dumps({"Username": username}).encode())
                     break
@@ -86,12 +86,12 @@ class Client:
                     port="5432"
                 )
                 curs = self.sqlConnection.cursor()
-                curs.execute("""CREATE TABLE private (
+                curs.execute("""CREATE TABLE privatekey (
                                 privkey TEXT NOT NULL
                                 )
                             """)
                 self.sqlConnection.commit()
-                curs.execute("""INSERT INTO private (privkey) VALUES %s""", priv_key)
+                curs.execute("""INSERT INTO privatekey (privkey) VALUES %s""", priv_key)
                 self.sqlConnection.commit()
 
                 curs.execute("""CREATE TABLE chats (
@@ -121,7 +121,7 @@ class Client:
                 )
                 
                 curs = self.sqlConnection.cursor()
-                curs.execute("""SELECT privkey FROM private""")
+                curs.execute("""SELECT privkey FROM privatekey""")
                 encrypted_bytes = curs.fetchall()[0][0].encode()
                 self.cryptography.set_priv_key(password, encrypted_bytes)
 
