@@ -29,8 +29,8 @@ class LoadBalancer:
         conn, addr = self.sock.accept()  # Should be ready to read
 
         msg = conn.recv(8192).decode()
-        print(msg)
-        user_credentials: dict = ast.literal_eval(msg)
+        # print(msg)
+        user_credentials: dict = json.loads(msg)
         
         username = user_credentials['Username']
         password = user_credentials['Password']
@@ -94,8 +94,8 @@ class LoadBalancer:
 if __name__ == "__main__":
     # lb = LoadBalancer(json.loads(sys.argv[1]), sys.argv[2], sys.argv[3], sys.argv[4], sys.argv[5])
     args = str([[["192.168.103.215", "61001", "fastchat_users"], ["192.168.103.215", "61002", "fastchat_users"], ["192.168.103.215", "61003", "fastchat_users"], ["192.168.103.215", "61004", "fastchat_users"], ["192.168.103.215", "61005", "fastchat_users"]], "192.168.103.215", "61051", "fastchat_users", "least-load"])
+    # args = input()
     # print("||" + repr(args))
-    import ast
-    print(ast.literal_eval(args))
+    # print(ast.literal_eval(args))
     lb = LoadBalancer(*ast.literal_eval(args))
     lb.run()
