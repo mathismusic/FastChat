@@ -13,14 +13,15 @@ onlineUserSockets= {}
 class Server:
     """Server class. Contains host address and port, 
     along with a connection to the PSQL server hosted locally."""
-    def __init__(self) -> None:
+    def __init__(self, host: str, port: str, database: str) -> None:
+        print("hello world")
         """Constructor, initializes to a default IP and port. Creates empty databases."""
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.HOST = "192.168.103.215"  # The server's hostname or IP address
-        self.PORT = 61001 if len(argv) == 1 else 61002  # The port used by the server
+        self.HOST = host  # The server's hostname or IP address
+        self.PORT = port  # The port used by the server
         self.numClients = 0
         self.selector = DefaultSelector()
-        self.userDBName = "fastchat_users"
+        self.userDBName = database
 
         # self.databaseServer = psycopg2.connect(
         #     host=self.HOST,
@@ -201,7 +202,6 @@ class Server:
                 for key, mask in events:
                     if key.data is None:
                         self.accept_client()
-                        pass
                     else:
                         self.serve_client(key, mask)
         except KeyboardInterrupt:

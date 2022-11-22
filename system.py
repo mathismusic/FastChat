@@ -4,7 +4,7 @@ import psycopg2
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 
 class System:
-    def __init__(self, n: int = 1) -> None:
+    def __init__(self, n: int) -> None:
         self.HOST = '192.168.103.215' # where this is running.
         self.SERVER_HOSTS = ['192.168.103.215']*n
         self.SERVER_PORTS = [i for i in range(61001, 61001 + n)]
@@ -58,7 +58,8 @@ class System:
         curs.close()
 
         # initialize servers and load balancer
-        self.servers = [Server()]*n
+        self.servers = [Server(self.SERVER_HOSTS[i], self.SERVER_PORTS[i], self.userDBName) for i in range(n)]
+        print("hello worlddd")
         self.loadBalancer = LoadBalancer(servers=self.servers, host=self.LB_HOST, port=self.LB_PORT, database=self.userDBName, algorithm='least-load')
 
 if __name__ == '__main__':
