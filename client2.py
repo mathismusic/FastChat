@@ -182,7 +182,8 @@ class Client:
         
         for receiver in self.receivers:
             to_send = Message(self.username, receiver, input, None)
-            self.cryptography.get_rsa_encrypt_key(self.receivers[receiver].encode())
+            print(self.receivers[receiver])
+            self.cryptography.get_rsa_encrypt_key((self.receivers[receiver]).encode())
             to_send = self.cryptography.main_encrypt(to_send)
             # print(to_send)
             
@@ -275,7 +276,7 @@ class Client:
             curs.close()
             return False
         else:
-            self.receivers[name_of_user] = pub_key_string
+            self.receivers[name_of_user] = pub_key_string[0][0]
             curs.close()
             return True
             #self.cryptography.get_rsa_encrypt_key(pub_key_string[0][0].encode())
