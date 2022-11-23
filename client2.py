@@ -261,55 +261,101 @@ class Client:
         """Prompt"""
         sys.stdout.write(MAGENTA + ">>> You: " + GREEN)
         sys.stdout.flush()     
+        
+    def add_recipient(self,input):
+        curs = self.database_connection.cursor()
+        curs.execute("""SELECT userpubkey FROM usercreds WHERE username=%s""", (input,))
+        pub_key_string = curs.fetchall()
+        if len(pub_key_string) == 0:
+            curs.close()
+            return False
+        else:
+            self.receivers[input] = pub_key_string
+            curs.close()
+            return True
+            #self.cryptography.get_rsa_encrypt_key(pub_key_string[0][0].encode())
+        
+        
 
     def get_recipient(self):
         """Get all messages from history from a given contact, ordered by time, and display"""
+        self.receivers=[]
         
         while True:
             sys.stdout.write(CYAN + '\nChoose your chat (start with "-g" if it is a group, "-cg" to create a group): ' + BLUE) 
-            self.receiver = sys.stdin.readline()[:-1]
+            rvr = sys.stdin.readline()[:-1]
             print(RESET)
-            if self.receiver == self.username:
+            if rvr == self.username:
                 print(GREEN + 'Self messaging is not enabled yet.' + RESET)
                 continue
-            if self.receiver in [None, ""]:
+            if rvr in [None, ""]:
                 continue
             
-            if self.receiver[:3] == '-g ':
-                self.receiver = 'group_' + self.receiver[3:] # that's how group names are stored in the database. We prepend the 'group_' tag to allow for a dm and a group name to be identical.
-                self.inAGroup = True
-            elif self.receiver[:4] == '-cg ':
-                self.receiver = 'group_' + self.receiver[4:]
-                self.inAGroup = True
-
-            # check if recipient/group is actually present
-            database_connection = psycopg2.connect(
-                    database='fastchat_users',
-                    host=self.HOST,
-                    user="postgres",
-                    password="password",
-                    port="5432"
-            )
-            database_curs = database_connection.cursor()
-            if self.inAGroup:
-                database_curs.execute("""SELECT group""")
+            if rvr[:3] == '-g ':
+                rvr = 'group_' + rvr[3:] # that's how group names are stored in the database. We prepend the 'group_' tag to allow for a dm and a group name to be identical.
+                cursor = self.database_connection.cursor()
+                cursor.execute("""SELECT groupmembers FROM groups WHERE groupname=%s""", (rvr,))
+                members = curs.fetchall()
+                cursor.close()
+                if len(members)==0:
+                    print(BOLD_YELLOW + "This group doesn't exist" + RESET)
+                    continue;
+                else:
+                    members = ast.literal_eval(members[0])
+                    curs_to_insert = self.sqlConnection.cursor()
+                    curs_to_insert.execute("""INSERT INTO chats (receiver) SELECT (%s) WHERE NOT EXISTS (SELECT FROM chats WHERE receiver=%s) ON CONFLICT DO NOTHING;""",(rvr,rvr))
+                    self.sqlConnection.commit()
+                    curs_to_insert.close()
+                    for member in members:
+                        if member!=self.username:
+                            self.add_recipient(member)
+                    
+                    
+            elif rvr[:4] == '-cg ':
+                rvr = 'group_' + rvr[4:]
+                cursor = self.database_connection.cursor()
+                cursor.execute("""SELECT groupmembers FROM groups WHERE groupname=%s""", (rvr,))
+                members = curs.fetchall()
+                cursor.close()
+                if len(members)==0:
+                    self.create_group(rvr)
+                else:
+                    print(BOLD_YELLOW + "This group name already exist. Try another" + RESET)
+                    continue; 
+                
             else:
-                database_curs.execute("""SELECT userpubkey FROM usercreds WHERE username=%s""", (self.receiver,))
-                pub_key_string = database_curs.fetchall()
-            if len(pub_key_string) == 0:
-                if self.receiver[:4] != '-cg ':
-                    print(BOLD_YELLOW + "This " + ("group" if self.receiver[:3] == '-g ' else "user") + " doesn't exist2." + RESET)
-                    continue
-            elif self.receiver[:4] == '-cg ': 
-                print(BOLD_YELLOW + "This group already exists3, choose another one." + RESET)
-                continue
-            elif not self.inAGroup:
-                self.cryptography.get_rsa_encrypt_key(pub_key_string[0][0].encode())
-
-            curs = self.sqlConnection.cursor()
-            curs.execute("""INSERT INTO chats (receiver) SELECT (%s) WHERE NOT EXISTS (SELECT FROM chats WHERE receiver=%s) ON CONFLICT DO NOTHING;""",(self.receiver,self.receiver))
-            self.sqlConnection.commit()
-            curs.close()
+                if self.add_recipient(rvr):
+                    curs_to_insert = self.sqlConnection.cursor()
+                    curs_to_insert.execute("""INSERT INTO chats (receiver) SELECT (%s) WHERE NOT EXISTS (SELECT FROM chats WHERE receiver=%s) ON CONFLICT DO NOTHING;""",(rvr,rvr))
+                    self.sqlConnection.commit()
+                    curs_to_insert.close()
+                else:
+                    print(BOLD_YELLOW + "This user doesn't exist" + RESET)
+                    continue;
+            # check if recipient/group is actually present
+            # database_connection = psycopg2.connect(
+            #         database='fastchat_users',
+            #         host=self.HOST,
+            #         user="postgres",
+            #         password="password",
+            #         port="5432"
+            # )
+            # database_curs = database_connection.cursor()
+            # if self.inAGroup:
+            #     database_curs.execute("""SELECT group""")
+            # else:
+            #     database_curs.execute("""SELECT userpubkey FROM usercreds WHERE username=%s""", (self.receiver,))
+            #     pub_key_string = database_curs.fetchall()
+            # if len(pub_key_string) == 0:
+            #     if self.receiver[:4] != '-cg ':
+            #         print(BOLD_YELLOW + "This " + ("group" if self.receiver[:3] == '-g ' else "user") + " doesn't exist2." + RESET)
+            #         continue
+            # elif self.receiver[:4] == '-cg ': 
+            #     print(BOLD_YELLOW + "This group already exists3, choose another one." + RESET)
+            #     continue
+            # elif not self.inAGroup:
+            #     self.cryptography.get_rsa_encrypt_key(pub_key_string[0][0].encode())
+            
             break
             
         wantsHistory = input(YELLOW + "Just a quick chat, or do you want to see previous messages? (type 'quick' if the former, else 'all') " + CYAN) # or simply press enter
@@ -318,9 +364,8 @@ class Client:
         if wantsHistory in ['quick', '']:
             return
 
-        # chat_id to be updated -> what?
         curs = self.sqlConnection.cursor()
-        curs.execute("SELECT (chat_id) FROM chats WHERE receiver=%s",(self.receiver,))
+        curs.execute("SELECT (chat_id) FROM chats WHERE receiver=%s",(rvr,))
         chat_id = curs.fetchall()[0][0]
         curs.execute(f"SELECT (chat_id, sender_name, msg, t) FROM history WHERE chat_id={chat_id} ORDER BY t DESC LIMIT 20")
         messages = curs.fetchall()
