@@ -193,11 +193,11 @@ class Client:
         curs = self.sqlConnection.cursor()
         curs.execute("SELECT (chat_id) FROM chats WHERE receiver=%s",(self.receiver,))
         chat_id = curs.fetchall()[0][0]
-        curs.execute("INSERT INTO history (chat_id, sender_name, msg) VALUES (%s,%s,%s)",(chat_id, data['Sender'], data['Message']))
+        curs.execute("INSERT INTO history (chat_id, sender_name, msg) VALUES (%s,%s,%s)",(chat_id, data.sender, data.message))
         self.sqlConnection.commit()
         curs.close()
         
-        sys.stdout.write(MAGENTA + ">>> " + BLUE + data['Sender'] + ": " + data['Message'] + '\n' + RESET)
+        sys.stdout.write(MAGENTA + ">>> " + BLUE + data.sender + ": " + data.message + '\n' + RESET)
         sys.stdout.flush()
 
     def serve(self):
