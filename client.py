@@ -1,6 +1,7 @@
 import socket
 import json
 import sys
+import ast
 import datetime
 import select
 from color_codes import *
@@ -25,6 +26,9 @@ class Client:
         
         self.username = None
         self.receiver = None # who is the client talking to. make receiver a class for dms and groups.
+        self.inAGroup = False
+        self.chat_id = -1
+
         self.sqlConnection = None # database connection object
         self.cryptography = Crypt() #cryptography object
         # add fields to remember username and password to auto-login next time. (use a local client-specific database/file to store local client stuff)
@@ -99,7 +103,7 @@ class Client:
                                 chat_id SERIAL PRIMARY KEY,
                                 receiver VARCHAR(255) NOT NULL UNIQUE
                                 )
-                            """)
+                            """) # is UNIQUE required?
                 self.sqlConnection.commit()
                 curs.execute(""" CREATE TABLE history (
                                 chat_id SERIAL,
@@ -108,7 +112,7 @@ class Client:
                                 msg TEXT NOT NULL,
                                 t TIMESTAMP NOT NULL
                                 )
-                            """) # Any otherrelevent name for time ?
+                            """) # Any other relevent name for time?
                 curs.execute("""ALTER TABLE history ALTER COLUMN t SET DEFAULT now();""")
                 self.sqlConnection.commit()
                 curs.close()
@@ -128,6 +132,7 @@ class Client:
 
             print(self.sqlConnection)
             
+            # load pending messages onto the client's database
             m = self.s.recv(65536).decode() # change to iterative
             msgs = json.loads(m)
             
@@ -156,16 +161,31 @@ class Client:
         Sends message, which inserts into the message history of the sender
         :param: input - The message string
         """
-        # recipient = input("Continue conversation with: ")
+        database_connection = psycopg2.connect(
+            database='fastchat_users',
+            host=self.HOST,
+            user="postgres",
+            password="password",
+            port="5432"
+        )
+        database_curs = database_connection.cursor()
+        database_curs.execute("SELECT (groupmembers) from groups where groupname=(%s)", (self.receiver,))
+        members = database_curs.fetchall()
+        if members == "":
+            print("Not supposed to happen, hmm")
+            return
+        members = ast.literal_eval(members)
+        
         to_send = Message(self.username, self.receiver, input, None)
         to_send = self.cryptography.main_encrypt(to_send)
         # print(to_send)
         
         self.s.sendall(str(to_send).encode())
-        status = self.s.recv(1024).decode()
-        if status == "invalid_recipient": 
-            print(BOLD_YELLOW + "This user doesn't use FastChat :/" + RESET)
-            return
+        #### No need now, since self.receiver is checked already by get_recipient.
+        # status = self.s.recv(1024).decode()
+        # if status == "invalid_recipient": 
+        #     print(BOLD_YELLOW + "This user doesn't use FastChat " if self.inAGroup else "this group does not exist on FastChat :/" + RESET)
+        #     return
 
         curs = self.sqlConnection.cursor()
         curs.execute("SELECT (chat_id) FROM chats WHERE receiver=%s",(self.receiver,))
@@ -176,7 +196,7 @@ class Client:
 
     def receiveMessage(self):
         """
-        Receives message, adding it into the chat history of receiver
+        Receives message, adding it into the chat history as well
         """
         msg = self.s.recv(8192).decode()
         data = {}
@@ -232,7 +252,7 @@ class Client:
                         self.display()
                         
         except KeyboardInterrupt:
-            print(BOLD_HIGH_BLACK + "Exiting" + RESET)
+            print(BOLD_BLUE + "Thank you for using FastChat!" + RESET)
             self.s.close()
             self.sqlConnection.close()
             sys.exit(1)
@@ -246,17 +266,21 @@ class Client:
         """Get all messages from history from a given contact, ordered by time, and display"""
         
         while True:
-            sys.stdout.write(CYAN + '\nWhom do you want to talk to? ' + BLUE) 
+            sys.stdout.write(CYAN + '\nChoose your chat (start with "-g" if it is a group, "-cg" to create a group): ' + BLUE) 
             self.receiver = sys.stdin.readline()[:-1]
             print(RESET)
             if self.receiver == self.username:
-                print(GREEN + 'Self messaging is not allowed yet.' + RESET)
+                print(GREEN + 'Self messaging is not enabled yet.' + RESET)
                 continue
             if self.receiver in [None, ""]:
                 continue
             
+            if self.receiver[:3] == '-g ':
+                self.receiver = 'group_' + self.receiver[4:] # that's how group names are stored in the database. We prepend the 'group_' tag to allow for a dm and a group name to be identical.
+            elif self.receiver[:4] == '-cg':
+                self.receiver = 'group_' + self.receiver[5:]
 
-            #check if recipient is actually present
+            # check if recipient/group is actually present
             usercreds_connection = psycopg2.connect(
                     database='fastchat_users',
                     host=self.HOST,
@@ -267,11 +291,19 @@ class Client:
             usercreds_curs = usercreds_connection.cursor()
             usercreds_curs.execute("""SELECT userpubkey FROM usercreds WHERE username=%s""", (self.receiver,))
             pub_key_string = usercreds_curs.fetchall()
-            if(len(pub_key_string) == 0):
-                print("This user doesn't exist")
+            if len(pub_key_string) == 0:
+                if self.receiver[:4] != '-cg ':
+                    print(BOLD_YELLOW + "This " + ("group" if self.receiver[:3] == '-g ' else "user") + " doesn't exist2." + RESET)
+                    continue
+            elif self.receiver[:4] == '-cg':
+                print(BOLD_YELLOW + "This group already exists3, choose another one." + RESET)
                 continue
             else:
                 self.cryptography.get_rsa_encrypt_key(pub_key_string[0][0].encode())
+
+            if self.receiver[:3] == '-g ' or self.receiver[:4] == '-cg ':
+                self.inAGroup = True
+            else: self.inAGroup = False
 
             curs = self.sqlConnection.cursor()
             curs.execute("""INSERT INTO chats (receiver) SELECT (%s) WHERE NOT EXISTS (SELECT FROM chats WHERE receiver=%s) ON CONFLICT DO NOTHING;""",(self.receiver,self.receiver))
@@ -279,10 +311,10 @@ class Client:
             curs.close()
             break
             
-        wantsHistory = input(YELLOW + "Just a quick chat, or do you want to see previous messages? (type 'quick' if the former, else 'all') " + CYAN)
+        wantsHistory = input(YELLOW + "Just a quick chat, or do you want to see previous messages? (type 'quick' if the former, else 'all') " + CYAN) # or simply press enter
         print(RESET)
 
-        if wantsHistory == 'quick':
+        if wantsHistory in ['quick', '']:
             return
 
         # chat_id to be updated -> what?
