@@ -7,7 +7,7 @@ import select
 from color_codes import *
 import psycopg2
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
-from crypto import Crypt
+from crypt import Crypt
 from message import Message
 
 class Client:

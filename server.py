@@ -6,7 +6,7 @@ import json
 import psycopg2
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 from color_codes import *
-from globals import Servers
+from globals import Globals
 
 # 192.168.103.215
 
@@ -24,7 +24,7 @@ class Server:
         self.selector = DefaultSelector()
         self.userDBName = database
         self.onlineUserSockets: dict(str, socket.socket)= {}
-        self.serverConnections=[None]*len(Servers)
+        self.serverConnections=[None]*len(Globals.Servers)
 
         # self.databaseServer = psycopg2.connect(
         #     host=self.HOST,
@@ -232,10 +232,10 @@ class Server:
     def makeKn(self):
         for i in range(0,self.index):
             self.serverConnections[i] = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            self.serverConnections[i].connect((Servers[i][0],Servers[i][1]))
+            self.serverConnections[i].connect((Globals.Servers[i][0],Globals.Servers[i][1]))
             s = "Server "+self.index
             self.serverConnections[i].sendall(s.encode())
-            data = SimpleNamespace(username=s, addr=(Servers[i][0],Servers[i][1]), inb=b"", outb=b"")
+            data = SimpleNamespace(username=s, addr=(Globals.Servers[i][0],Globals.Servers[i][1]), inb=b"", outb=b"")
             events = EVENT_READ | EVENT_WRITE
             self.selector.register(self.serverConnections[i],events,data=data)
 

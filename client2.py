@@ -9,6 +9,7 @@ import psycopg2
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 from crypto import Crypt
 from message import Message
+from globals import Globals
 
 class Client:
     """
@@ -19,18 +20,27 @@ class Client:
     def __init__(self) -> None:
         """Constructor"""
         self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM) # the client's socket
-        self.HOST = "192.168.103.215"  # The server's hostname or IP address
+        self.HOST = Globals.default_host  # The server's hostname or IP address
         self.PORT = 61001 if len(sys.argv) == 1 else 61002  # The port used by the server
-        self.LB_HOST = "192.168.103.215"  # The load balancer's hostname or IP address
+        self.LB_HOST = Globals.default_host  # The load balancer's hostname or IP address
         self.LB_PORT = 61051 if len(sys.argv) == 1 else 61012  # The port used by the load balancer
         
         self.username = None
-        self.receiver = None # who is the client talking to. make receiver a class for dms and groups.
+        self.receivers: dict[str, str] = {}
         self.inAGroup = False
         self.chat_id = -1
 
         self.sqlConnection = None # database connection object
-        self.cryptography = Crypt() #cryptography object
+        
+        # connection to main server database (to access public keys and list of users)
+        self.database_connection = psycopg2.connect(
+            database='fastchat_users',
+            host=self.HOST,
+            user="postgres",
+            password="password",
+            port="5432"
+        )
+        self.cryptography = Crypt()
         # add fields to remember username and password to auto-login next time. (use a local client-specific database/file to store local client stuff)
         
     def login(self) -> None:
@@ -161,38 +171,34 @@ class Client:
         Sends message, which inserts into the message history of the sender
         :param: input - The message string
         """
-        database_connection = psycopg2.connect(
-            database='fastchat_users',
-            host=self.HOST,
-            user="postgres",
-            password="password",
-            port="5432"
-        )
-        database_curs = database_connection.cursor()
-        database_curs.execute("SELECT (groupmembers) from groups where groupname=(%s)", (self.receiver,))
-        members = database_curs.fetchall()
-        if members == "":
-            print("Not supposed to happen, hmm")
-            return
-        members = ast.literal_eval(members)
         
-        to_send = Message(self.username, self.receiver, input, None)
-        to_send = self.cryptography.main_encrypt(to_send)
-        # print(to_send)
-        
-        self.s.sendall(str(to_send).encode())
-        #### No need now, since self.receiver is checked already by get_recipient.
-        # status = self.s.recv(1024).decode()
-        # if status == "invalid_recipient": 
-        #     print(BOLD_YELLOW + "This user doesn't use FastChat " if self.inAGroup else "this group does not exist on FastChat :/" + RESET)
+        # database_curs = self.database_connection.cursor()
+        # database_curs.execute("SELECT (groupmembers) from groups where groupname=(%s)", (self.receiver,))
+        # members = database_curs.fetchall()
+        # if members == "":
+        #     print("Not supposed to happen, hmm")
         #     return
+        # members = ast.literal_eval(members)
+        
+        for receiver in self.receivers:
+            to_send = Message(self.username, receiver, input, None)
+            self.cryptography.get_rsa_encrypt_key(self.receivers[receiver].encode())
+            to_send = self.cryptography.main_encrypt(to_send)
+            # print(to_send)
+            
+            self.s.sendall(str(to_send).encode())
+            #### No need now, since self.receiver is checked already by get_recipient.
+            # status = self.s.recv(1024).decode()
+            # if status == "invalid_recipient": 
+            #     print(BOLD_YELLOW + "This user doesn't use FastChat " if self.inAGroup else "this group does not exist on FastChat :/" + RESET)
+            #     return
 
-        curs = self.sqlConnection.cursor()
-        curs.execute("SELECT (chat_id) FROM chats WHERE receiver=%s",(self.receiver,))
-        chat_id = curs.fetchall()[0][0]
-        curs.execute("INSERT INTO history (chat_id, sender_name, msg) VALUES (%s,%s,%s)",(chat_id,to_send.sender,to_send.message))
-        self.sqlConnection.commit()
-        curs.close()
+            curs = self.sqlConnection.cursor()
+            curs.execute("SELECT (chat_id) FROM chats WHERE receiver=%s",(self.receiver,))
+            chat_id = curs.fetchall()[0][0]
+            curs.execute("INSERT INTO history (chat_id, sender_name, msg) VALUES (%s,%s,%s)",(chat_id,to_send.sender,to_send.message))
+            self.sqlConnection.commit()
+            curs.close()
 
     def receiveMessage(self):
         """
@@ -208,7 +214,6 @@ class Client:
         data = json.loads(msg)   
         data = self.cryptography.main_decrypt(Message(data['Sender'], data['Recipient'], data['Message'], data['Key'])) 
         print(YELLOW + "data: " + RESET + "|" + str(data) + "|\n\n")
-        # self.receiver = data['Sender'] # update receiver to whoever sent the message
         
         curs = self.sqlConnection.cursor()
         curs.execute("SELECT (chat_id) FROM chats WHERE receiver=%s",(self.receiver,))
@@ -217,7 +222,7 @@ class Client:
         self.sqlConnection.commit()
         curs.close()
         
-        if data.sender == self.receiver:
+        if data.sender in self.receivers:
             sys.stdout.write(MAGENTA + ">>> " + BLUE + data.sender + ": " + GREEN + data.message + '\n' + RESET)
         sys.stdout.flush()
 
@@ -326,6 +331,39 @@ class Client:
         messages = curs.fetchall()
         for message in reversed(messages):
             print(message) # color differently based on user or receiver sent
+        curs.close()
+
+    def create_group(self, groupname):
+        print(CYAN + "How many more users would you like to add?: " + BLUE)
+        num_to_add = int(input())
+        admins = [self.username]
+        i = 0
+        while i < num_to_add:
+            print(GREEN + "Username #" + str(i+1) + ": (say -x to skip this user and move on to the next)" + BLUE)
+            name_of_user = input()
+            if name_of_user == '-x':
+                i += 1
+                continue
+            added_successfully = self.add_recipient(name_of_user)
+            if added_successfully:
+                while True:
+                    print(RED + "Do you want to make this user an admin?(y/n): " + BLUE)
+                    ans = input()
+                    if ans == 'y': admins.append(name_of_user)
+                    elif ans != 'n': continue
+                    break
+                i += 1
+            else:
+                print(BOLD_YELLOW + "This user doesn't use FastChat4." + RESET)
+
+
+        curs = self.database_connection.cursor()
+        curs.execute("""INSERT INTO groups (groupname, groupmembers, adminlist) VALUES (%s, %s, %s)""", (groupname, str(self.receivers), str(admins)))
+        self.database_connection.commit()
+        curs.close()
+        curs = self.sqlConnection.cursor()
+        curs.execute("""INSERT INTO chats (receiver) VALUES (%s)""", (groupname,))
+        self.sqlConnection.commit()
         curs.close()
 
 if __name__ == "__main__":

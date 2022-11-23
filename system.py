@@ -50,7 +50,7 @@ class System:
                     );""") # isonline INTEGER DEFAULT 1
         curs.execute("""CREATE TABLE IF NOT EXISTS groups (
                             groupid SERIAL PRIMARY KEY,
-                            groupname TEXT NOT NULL,
+                            groupname VARCHAR(256) NOT NULL,
                             groupmembers TEXT NOT NULL,
                             adminlist TEXT NOT NULL
                     );""")
