@@ -173,7 +173,7 @@ class Server:
                     else: # user is online
                         onlineUserSockets[msg['Recipient']].sendall(recv_data)
                     curs.close()
-                    print(f"Client {data.username} to {msg['Recipient']}:", msg['Message'])
+                    # print(f"Client {data.username} to {msg['Recipient']}:", msg['Message'])
                 else:
                     print("Closing connection from address " + RED + str(data.addr) + RESET + ", username " + GREEN + data.username + RESET)
                     self.selector.unregister(sock)
