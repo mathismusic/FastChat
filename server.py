@@ -23,7 +23,7 @@ class Server:
         self.numClients = 0
         self.selector = DefaultSelector()
         self.userDBName = database
-        self.onlineUserSockets= {}
+        self.onlineUserSockets: dict(str, socket.socket)= {}
         self.serverConnections=[None]*len(Servers)
 
         # self.databaseServer = psycopg2.connect(
@@ -78,6 +78,17 @@ class Server:
         Creates a new account on corresponding request."""
         conn, addr = self.sock.accept()  # Should be ready to read
         msg = conn.recv(1024).decode()
+        
+        if msg[:7]=="Server ":
+            serverindex = int(msg[7:])
+            self.serverConnections[serverindex] = conn
+            conn.setblocking(False)
+            data = SimpleNamespace(username=msg, addr=addr, inb=b"", outb=b"")
+            events = EVENT_READ | EVENT_WRITE
+            self.selector.register(conn,events,data=data)
+            return
+            
+        
         user_credentials: dict = json.loads(msg)
         username = user_credentials['Username']
 #     password = user_credentials['Password']
@@ -174,8 +185,8 @@ class Server:
                             curs.execute("INSERT INTO pending (sender,receiver,jsonmsg) VALUES (%s,%s,%s) ",(msg['Sender'],msg['Recipient'],recv_data.decode()))
                             self.databaseServer.commit()
                         else:
-                            #todo send the msg to the relevent server
-                            pass
+                            self.serverConnections[userentry[0][5]].sendall(recv_data)
+                            
                     else: # user is online and in the same server
                         self.onlineUserSockets[msg['Recipient']].sendall(recv_data)
                     curs.close()
@@ -183,8 +194,11 @@ class Server:
                 else:
                     print("Closing connection from address " + RED + str(data.addr) + RESET + ", username " + GREEN + data.username + RESET)
                     self.selector.unregister(sock)
-                    self.numClients -= 1
-                    self.onlineUserSockets.pop(data.username)
+                    if data.username[:7]=="Server ":
+                        self.serverConnections[int(data.username[7:])]=None
+                    else:
+                        self.numClients -= 1
+                        self.onlineUserSockets.pop(data.username)
                     sock.close()
             if mask & EVENT_WRITE:
                 if data.outb:
@@ -218,14 +232,19 @@ class Server:
     def makeKn(self):
         for i in range(0,self.index):
             self.serverConnections[i] = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            
-            
+            self.serverConnections[i].connect((Servers[i][0],Servers[i][1]))
+            s = "Server "+self.index
+            self.serverConnections[i].sendall(s.encode())
+            data = SimpleNamespace(username=s, addr=(Servers[i][0],Servers[i][1]), inb=b"", outb=b"")
+            events = EVENT_READ | EVENT_WRITE
+            self.selector.register(self.serverConnections[i],events,data=data)
 
     def num_active_clients(self):
         return self.numClients
 
 if __name__ == '__main__':
     server = Server(sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4])
+    server.makeKn()
     server.run()
 
 
