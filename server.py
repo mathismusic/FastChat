@@ -9,7 +9,7 @@ from color_codes import *
 from globals import Servers
 
 # 192.168.103.215
-onlineUserSockets= {}
+
 #users = {}
 class Server:
     """Server class. Contains host address and port, 
@@ -23,6 +23,8 @@ class Server:
         self.numClients = 0
         self.selector = DefaultSelector()
         self.userDBName = database
+        self.onlineUserSockets= {}
+        self.serverConnections=[None]*len(Servers)
 
         # self.databaseServer = psycopg2.connect(
         #     host=self.HOST,
@@ -108,17 +110,17 @@ class Server:
 #     # curs.execute("INSERT INTO \"usercreds\" (username, userpwd) VALUES (%s,%s)",(username,password))
 #     # curs.close()
     
-        onlineUserSockets[username] = conn # change to bool = True
+        self.onlineUserSockets[username] = conn # change to bool = True
 #     conn.sendall('valid'.encode())
     
         conn.setblocking(False)
         curs.execute("SELECT msgid,jsonmsg,sendtime FROM pending WHERE receiver=%s ORDER BY sendtime",(username,))
     
         messages = curs.fetchall()
-        onlineUserSockets[username].sendall(json.dumps(messages,default=str).encode())
-        # onlineUserSockets[username].sendall(str(len(messages)).encode())
+        self.onlineUserSockets[username].sendall(json.dumps(messages,default=str).encode())
+        # self.onlineUserSockets[username].sendall(str(len(messages)).encode())
         for mess in messages:
-            # onlineUserSockets[username].sendall(json.dumps(mess[3]).encode())
+            # self.onlineUserSockets[username].sendall(json.dumps(mess[3]).encode())
             curs.execute("DELETE FROM pending WHERE msgid=%s",(mess[0],))
             self.databaseServer.commit()
         curs.close()
@@ -130,7 +132,7 @@ class Server:
     #     print("Accepted connection from " + RED + str(addr) + RESET + " with username "  + GREEN + username + RESET)
     #     self.numClients += 1
         
-    #     onlineUserSockets[username] = conn # change to bool = True
+    #     self.onlineUserSockets[username] = conn # change to bool = True
     #     conn.sendall('valid'.encode())
         
     #     curs = self.databaseServer.cursor()
@@ -139,10 +141,10 @@ class Server:
     #     curs.execute("SELECT msgid,jsonmsg,sendtime FROM pending WHERE receiver=%s ORDER BY sendtime",(username,))
         
     #     messages = curs.fetchall()
-    #     onlineUserSockets[username].sendall(json.dumps(messages,default=str).encode())
-    #     # onlineUserSockets[username].sendall(str(len(messages)).encode())
+    #     self.onlineUserSockets[username].sendall(json.dumps(messages,default=str).encode())
+    #     # self.onlineUserSockets[username].sendall(str(len(messages)).encode())
     #     for mess in messages:
-    #         # onlineUserSockets[username].sendall(json.dumps(mess[3]).encode())
+    #         # self.onlineUserSockets[username].sendall(json.dumps(mess[3]).encode())
     #         curs.execute("DELETE FROM pending WHERE msgid=%s",(mess[0],))
     #         self.databaseServer.commit()
     #     curs.close()
@@ -167,7 +169,7 @@ class Server:
                     if len(userentry)==0:
                         sock.sendall('invalid_recipient'.encode())
                         return
-                    elif msg['Recipient'] not in onlineUserSockets:
+                    elif msg['Recipient'] not in self.onlineUserSockets:
                         if userentry[0][5]==-1:
                             curs.execute("INSERT INTO pending (sender,receiver,jsonmsg) VALUES (%s,%s,%s) ",(msg['Sender'],msg['Recipient'],recv_data.decode()))
                             self.databaseServer.commit()
@@ -175,14 +177,14 @@ class Server:
                             #todo send the msg to the relevent server
                             pass
                     else: # user is online and in the same server
-                        onlineUserSockets[msg['Recipient']].sendall(recv_data)
+                        self.onlineUserSockets[msg['Recipient']].sendall(recv_data)
                     curs.close()
                     # print(f"Client {data.username} to {msg['Recipient']}:", msg['Message'])
                 else:
                     print("Closing connection from address " + RED + str(data.addr) + RESET + ", username " + GREEN + data.username + RESET)
                     self.selector.unregister(sock)
                     self.numClients -= 1
-                    onlineUserSockets.pop(data.username)
+                    self.onlineUserSockets.pop(data.username)
                     sock.close()
             if mask & EVENT_WRITE:
                 if data.outb:
@@ -212,6 +214,12 @@ class Server:
             print("Caught keyboard interrupt, exiting")
         
         self.selector.close()
+        
+    def makeKn(self):
+        for i in range(0,self.index):
+            self.serverConnections[i] = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            
+            
 
     def num_active_clients(self):
         return self.numClients
