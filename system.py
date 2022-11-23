@@ -64,7 +64,7 @@ class System:
         self.servers = [[self.SERVER_HOSTS[i], self.SERVER_PORTS[i], self.userDBName] for i in range(n)]
         for i in range(n):
             # pass
-            subprocess.call(['./start_server.sh', self.SERVER_HOSTS[i], self.SERVER_PORTS[i], self.userDBName])
+            subprocess.call(['./start_server.sh', self.SERVER_HOSTS[i], self.SERVER_PORTS[i], self.userDBName, i])
         # print("hello worlddd")
         self.loadBalancer = [self.servers, self.LB_HOST, self.LB_PORT, self.userDBName, 'least-load']
         # print(json.dumps(self.loadBalancer))
