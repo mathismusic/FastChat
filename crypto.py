@@ -91,7 +91,10 @@ class Crypt:
         return decrypted
 
     def hash_string(self, password : str) ->str :
-         
+        digest = hashes.Hash(hashes.SHA256(), default_backend())
+        digest.update(password.encode())
+        b = digest.finalize()
+        return binascii.hexlify(b).decode()         
 
 
 
