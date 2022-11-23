@@ -14,7 +14,6 @@ class Server:
     """Server class. Contains host address and port, 
     along with a connection to the PSQL server hosted locally."""
     def __init__(self, host: str, port: str, database: str, index: str) -> None:
-        print("hello world")
         """Constructor, initializes to a default IP and port. Creates empty databases."""
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.HOST = host  # The server's hostname or IP address
@@ -68,6 +67,7 @@ class Server:
         # # isonline INTEGER DEFAULT 1
         self.sock.bind((self.HOST, self.PORT))
         self.sock.listen()
+        print(f"Server #{self.index} is operational!")
         print(f"Listening on {(self.HOST, self.PORT)}")
 
     def accept_client(self):

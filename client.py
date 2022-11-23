@@ -128,7 +128,7 @@ class Client:
 
             print(self.sqlConnection)
             
-            m = self.s.recv(65536).decode()
+            m = self.s.recv(65536).decode() # change to iterative
             msgs = json.loads(m)
             
             for msg in msgs:
