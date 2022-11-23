@@ -280,8 +280,6 @@ class Client:
             return True
             #self.cryptography.get_rsa_encrypt_key(pub_key_string[0][0].encode())
         
-        
-
     def get_recipient(self):
         """Get all messages from history from a given contact, ordered by time, and display"""
         self.receivers=[]
