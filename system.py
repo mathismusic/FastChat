@@ -39,7 +39,6 @@ class System:
             port="5432"
         )
 
-
         curs = self.databaseServer.cursor()
         curs.execute("""CREATE TABLE IF NOT EXISTS usercreds (
                         userid SERIAL PRIMARY KEY,
@@ -49,6 +48,12 @@ class System:
                         userpubkey TEXT NOT NULL,
                         connectedto INTEGER NOT NULL DEFAULT -1
                     );""") # isonline INTEGER DEFAULT 1
+        curs.execute("""CREATE TABLE IF NOT EXISTS groups (
+                            groupid SERIAL PRIMARY KEY,
+                            groupname TEXT NOT NULL,
+                            groupmembers TEXT NOT NULL,
+                            adminlist TEXT NOT NULL
+                    );""")
         self.databaseServer.commit()
         curs.execute("""CREATE TABLE IF NOT EXISTS pending (
                         msgid SERIAL NOT NULL PRIMARY KEY,
