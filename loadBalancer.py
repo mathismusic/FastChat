@@ -16,6 +16,13 @@ class LoadBalancer:
         self.userDBName = database
         self.algorithm = algorithm
         self.selector = DefaultSelector()
+        self.databaseServer = psycopg2.connect(
+            database=self.userDBName,
+            host=self.HOST,
+            user="postgres",
+            password="password",
+            port="5432"
+        )
         print("load balancer host: " + self.HOST)
         self.sock.bind((self.HOST, self.PORT))
         self.sock.listen()
@@ -38,14 +45,7 @@ class LoadBalancer:
         user_pub_key = user_credentials['Public_Key']
         newuser = user_credentials['Newuser']
 
-        databaseServer = psycopg2.connect(
-            database=self.userDBName,
-            host=self.HOST,
-            user="postgres",
-            password="password",
-            port="5432"
-        )
-        curs = databaseServer.cursor()
+        curs = self.databaseServer.cursor()
         curs.execute("SELECT * FROM \"usercreds\" WHERE username=%s",(username,))
         data = curs.fetchall()
         if newuser:
@@ -55,7 +55,7 @@ class LoadBalancer:
                 return
             else:
                 curs.execute("INSERT INTO \"usercreds\" (username,userpwd,userprivkey, userpubkey) VALUES (%s, %s, %s, %s)",(username,password, user_priv_key, user_pub_key)) # add user.
-                databaseServer.commit()
+                self.databaseServer.commit()
         elif (len(data) == 0 or password != data[0][2]):
             # print(data[0][2])
             conn.sendall("invalid".encode())
@@ -66,7 +66,9 @@ class LoadBalancer:
         # connect the user to server
         server = self.choose_server()
         conn.sendall(json.dumps({"hostname": server[0], "port": server[1]}).encode())
-        # conn.close()
+        curs.execute("UPDATE \"usercreds\" SET connectedto=%s WHERE username=%s",(self.servers.index(server),username))
+        self.databaseServer.commit()
+        curs.close()
         return
         # server.accept_client(conn, addr, username, password)
 

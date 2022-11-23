@@ -197,7 +197,8 @@ class Client:
         self.sqlConnection.commit()
         curs.close()
         
-        sys.stdout.write(MAGENTA + ">>> " + BLUE + data.sender + ": " + GREEN + data.message + '\n' + RESET)
+        if data.sender == self.receiver:
+            sys.stdout.write(MAGENTA + ">>> " + BLUE + data.sender + ": " + GREEN + data.message + '\n' + RESET)
         sys.stdout.flush()
 
     def serve(self):

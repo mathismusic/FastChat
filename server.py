@@ -6,6 +6,7 @@ import json
 import psycopg2
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 from color_codes import *
+from globals import Servers
 
 # 192.168.103.215
 onlineUserSockets= {}
@@ -167,10 +168,13 @@ class Server:
                         sock.sendall('invalid_recipient'.encode())
                         return
                     elif msg['Recipient'] not in onlineUserSockets:
-                        curs.execute("INSERT INTO pending (sender,receiver,jsonmsg) VALUES (%s,%s,%s) ",(msg['Sender'],msg['Recipient'],recv_data.decode()))
-                        self.databaseServer.commit()
-                         # todo, must save message in queue - dict(username, [messages to be sent sorted by timestamp]) and send when user comes online (in accept_client when they log in)
-                    else: # user is online
+                        if userentry[0][5]==-1:
+                            curs.execute("INSERT INTO pending (sender,receiver,jsonmsg) VALUES (%s,%s,%s) ",(msg['Sender'],msg['Recipient'],recv_data.decode()))
+                            self.databaseServer.commit()
+                        else:
+                            #todo send the msg to the relevent server
+                            pass
+                    else: # user is online and in the same server
                         onlineUserSockets[msg['Recipient']].sendall(recv_data)
                     curs.close()
                     # print(f"Client {data.username} to {msg['Recipient']}:", msg['Message'])

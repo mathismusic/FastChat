@@ -46,7 +46,8 @@ class System:
                         username VARCHAR(256) NOT NULL,
                         userpwd VARCHAR(256) NOT NULL,
                         userprivkey TEXT NOT NULL,
-                        userpubkey TEXT NOT NULL
+                        userpubkey TEXT NOT NULL,
+                        connectedto INTEGER NOT NULL DEFAULT -1
                     );""") # isonline INTEGER DEFAULT 1
         self.databaseServer.commit()
         curs.execute("""CREATE TABLE IF NOT EXISTS pending (
