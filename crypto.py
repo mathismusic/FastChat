@@ -5,6 +5,7 @@ from cryptography.hazmat.primitives.asymmetric import padding
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.backends import default_backend
 from message import Message
+import binascii
 
 class Crypt:
 
@@ -78,14 +79,14 @@ class Crypt:
     # return encrypted message, public encrypt key must be set BEFORE this
     def main_encrypt(self, message_obj) -> Message:
         encrypted = Message(message_obj.sender, message_obj.recipient, message_obj.message, message_obj.fernet_key)
-        encrypted.fernet_key = (self.gen_fernet_encrypt_key()).decode()
+        encrypted.fernet_key = binascii.hexlify(self.gen_fernet_encrypt_key()).decode()
         encrypted.message = self.fernet_encrypt_message(message_obj.message)
         return encrypted
 
     #decrypt message, private key must be set BEFORE this
     def main_decrypt(self, message_obj) -> Message:
         decrypted = Message(message_obj.sender, message_obj.recipient, message_obj.message, message_obj.fernet_key)
-        decrypted.fernet_key = self.decrypt_fernet_key(message_obj.fernet_key.encode()).decode()
+        decrypted.fernet_key = self.decrypt_fernet_key(binascii.unhexlify(message_obj.fernet_key.encode())).decode()
         decrypted.message = self.fernet_decrypt_message(message_obj.message, decrypted.fernet_key.encode())
         return decrypted
 
