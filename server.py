@@ -202,8 +202,7 @@ class Server:
                     sock.close()
             if mask & EVENT_WRITE:
                 if data.outb:
-                    response = ""#input(f"ToClient {data.username}: ")
-                    if response == "": response = "received"
+                    response = "received"
                     data.outb = response.encode()
                     # print(f"Echoing {data.outb!r} to {data.addr}")
                     sent = sock.send(data.outb)  # Should be ready to write

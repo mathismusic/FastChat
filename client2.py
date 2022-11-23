@@ -188,14 +188,14 @@ class Client:
             # print(to_send)
             
             self.s.sendall(str(to_send).encode())
+            status = self.s.recv(1024).decode()
             #### No need now, since self.receiver is checked already by get_recipient.
-            # status = self.s.recv(1024).decode()
             # if status == "invalid_recipient": 
             #     print(BOLD_YELLOW + "This user doesn't use FastChat " if self.inAGroup else "this group does not exist on FastChat :/" + RESET)
             #     return
 
             curs = self.sqlConnection.cursor()
-            curs.execute("SELECT (chat_id) FROM chats WHERE receiver=%s",(self.receiver,))
+            curs.execute("SELECT (chat_id) FROM chats WHERE receiver=%s",(receiver,))
             chat_id = curs.fetchall()[0][0]
             curs.execute("INSERT INTO history (chat_id, sender_name, msg) VALUES (%s,%s,%s)",(chat_id,to_send.sender,to_send.message))
             self.sqlConnection.commit()
@@ -217,7 +217,7 @@ class Client:
         print(YELLOW + "data: " + RESET + "|" + str(data) + "|\n\n")
         
         curs = self.sqlConnection.cursor()
-        curs.execute("SELECT (chat_id) FROM chats WHERE receiver=%s",(self.receiver,))
+        curs.execute("SELECT (chat_id) FROM chats WHERE receiver=%s",(data.sender,))
         chat_id = curs.fetchall()[0][0]
         curs.execute("INSERT INTO history (chat_id, sender_name, msg) VALUES (%s,%s,%s)",(chat_id, data.sender, data.message))
         self.sqlConnection.commit()
@@ -303,7 +303,7 @@ class Client:
                 cursor.close()
                 if len(members)==0:
                     print(BOLD_YELLOW + "This group doesn't exist" + RESET)
-                    continue;
+                    continue
                 else:
                     members = ast.literal_eval(members[0])
                     curs_to_insert = self.sqlConnection.cursor()
@@ -335,7 +335,7 @@ class Client:
                     curs_to_insert.close()
                 else:
                     print(BOLD_YELLOW + "This user doesn't exist" + RESET)
-                    continue;
+                    continue
             # check if recipient/group is actually present
             # database_connection = psycopg2.connect(
             #         database='fastchat_users',
