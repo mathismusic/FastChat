@@ -5,13 +5,14 @@ import json
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 import threading
 import subprocess
+from globals import Globals
 
 class System:
     def __init__(self, n: int) -> None:
-        self.HOST = '192.168.103.215' # where this is running.
-        self.SERVER_HOSTS = ['192.168.103.215']*n
+        self.HOST = Globals.default_host # where this is running.
+        self.SERVER_HOSTS = [Globals.default_host]*n
         self.SERVER_PORTS = [str(i) for i in range(61001, 61001 + n)]
-        self.LB_HOST = '192.168.103.215'
+        self.LB_HOST = Globals.default_host
         self.LB_PORT = str(61001 + 10*n)
 
         # create database. Since this is the first time FastChat opens, any old databases with the same name will be deleted if exists

@@ -4,6 +4,7 @@ import sys
 import ast
 import psycopg2
 from server import Server
+from globals import Globals
 from selectors import DefaultSelector, EVENT_READ, EVENT_WRITE, SelectorKey
 
 # load balancer server
@@ -98,7 +99,7 @@ class LoadBalancer:
 
 if __name__ == "__main__":
     # lb = LoadBalancer(json.loads(sys.argv[1]), sys.argv[2], sys.argv[3], sys.argv[4], sys.argv[5])
-    args = str([[["192.168.103.215", "61001", "fastchat_users"], ["192.168.103.215", "61002", "fastchat_users"], ["192.168.103.215", "61003", "fastchat_users"], ["192.168.103.215", "61004", "fastchat_users"], ["192.168.103.215", "61005", "fastchat_users"]], "192.168.103.215", "61051", "fastchat_users", "least-load"])
+    args = str([[[Globals.default_host, "61001", "fastchat_users"], [Globals.default_host, "61002", "fastchat_users"], [Globals.default_host, "61003", "fastchat_users"], [Globals.default_host, "61004", "fastchat_users"], [Globals.default_host, "61005", "fastchat_users"]], Globals.default_host, "61051", "fastchat_users", "least-load"])
     # args = input()
     # print("||" + repr(args))
     # print(ast.literal_eval(args))
