@@ -128,7 +128,7 @@ class Client:
 
             print(self.sqlConnection)
             
-            m = self.s.recv(8192).decode()
+            m = self.s.recv(65536).decode()
             msgs = json.loads(m)
             
             for msg in msgs:
@@ -178,7 +178,7 @@ class Client:
         """
         Receives message, adding it into the chat history of receiver
         """
-        msg = self.s.recv(1024).decode()
+        msg = self.s.recv(8192).decode()
         data = {}
         if msg in [None, ""]:
             print(YELLOW + "msg: " + RESET + "|" + msg + "|")
@@ -186,7 +186,7 @@ class Client:
 
         print(YELLOW + "msg: " + RESET + "|" + msg + "|")
         data = json.loads(msg)   
-        data = self.cryptography.main_decrypt(data) 
+        data = self.cryptography.main_decrypt(Message(data['Sender'], data['Recipient'], data['Message'], data['Key'])) 
         print(YELLOW + "data: " + RESET + "|" + str(data) + "|\n\n")
         # self.receiver = data['Sender'] # update receiver to whoever sent the message
         

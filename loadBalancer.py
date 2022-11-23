@@ -54,7 +54,6 @@ class LoadBalancer:
                 print("yes1")
                 return
             else:
-                server = self.choose_server()
                 curs.execute("INSERT INTO \"usercreds\" (username,userpwd,userprivkey, userpubkey) VALUES (%s, %s, %s, %s)",(username,password, user_priv_key, user_pub_key)) # add user.
                 databaseServer.commit()
         elif (len(data) == 0 or password != data[0][2]):
@@ -65,6 +64,7 @@ class LoadBalancer:
             return
 
         # connect the user to server
+        server = self.choose_server()
         conn.sendall(json.dumps({"hostname": server[0], "port": server[1]}).encode())
         # conn.close()
         return

@@ -13,7 +13,7 @@ onlineUserSockets= {}
 class Server:
     """Server class. Contains host address and port, 
     along with a connection to the PSQL server hosted locally."""
-    def __init__(self, host: str, port: str, database: str, index: int) -> None:
+    def __init__(self, host: str, port: str, database: str, index: str) -> None:
         print("hello world")
         """Constructor, initializes to a default IP and port. Creates empty databases."""
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -213,7 +213,7 @@ class Server:
         return self.numClients
 
 if __name__ == '__main__':
-    server = Server(sys.argv[1], sys.argv[2], sys.argv[3])
+    server = Server(sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4])
     server.run()
 
 
