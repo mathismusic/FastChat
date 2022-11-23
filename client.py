@@ -48,8 +48,8 @@ class Client:
                     self.cryptography.gen_rsa_key()
                     priv_key = self.cryptography.get_rsa_private_str(password).decode()
                     pub_key = self.cryptography.get_rsa_public_str().decode()
-                
-                login_data = {"Username" : username, "Password" : password, "Newuser" : newuser, "Private_Key" : priv_key, "Public_Key" : pub_key}
+                hashed_password = self.cryptography.hash_string(password)
+                login_data = {"Username" : username, "Password" : hashed_password, "Newuser" : newuser, "Private_Key" : priv_key, "Public_Key" : pub_key}
                 self.s.sendall(json.dumps(login_data).encode())
                 
                 data = self.s.recv(1024).decode()

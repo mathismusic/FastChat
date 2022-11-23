@@ -90,6 +90,8 @@ class Crypt:
         decrypted.message = self.fernet_decrypt_message(message_obj.message, decrypted.fernet_key.encode())
         return decrypted
 
+    def hash_string(self, password : str) ->str :
+         
 
 
 
