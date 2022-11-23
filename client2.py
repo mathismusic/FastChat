@@ -205,7 +205,7 @@ class Client:
         """
         Receives message, adding it into the chat history as well
         """
-        msg = self.s.recv(8192).decode()
+        msg = self.s.recv(3072).decode()
         data = {}
         if msg in [None, ""]:
             print(YELLOW + "msg: " + RESET + "|" + msg + "|")
@@ -319,7 +319,7 @@ class Client:
                 rvr = 'group_' + rvr[4:]
                 cursor = self.database_connection.cursor()
                 cursor.execute("""SELECT groupmembers FROM groups WHERE groupname=%s""", (rvr,))
-                members = curs.fetchall()
+                members = cursor.fetchall()
                 cursor.close()
                 if len(members)==0:
                     self.create_group(rvr)
