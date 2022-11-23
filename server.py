@@ -230,12 +230,12 @@ class Server:
         self.selector.close()
         
     def makeKn(self):
-        for i in range(0,self.index):
+        for i in range(0,int(self.index)):
             self.serverConnections[i] = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            self.serverConnections[i].connect((Globals.Servers[i][0],Globals.Servers[i][1]))
+            self.serverConnections[i].connect((Globals.Servers[i][0],int(Globals.Servers[i][1])))
             s = "Server "+self.index
             self.serverConnections[i].sendall(s.encode())
-            data = SimpleNamespace(username=s, addr=(Globals.Servers[i][0],Globals.Servers[i][1]), inb=b"", outb=b"")
+            data = SimpleNamespace(username=s, addr=(Globals.Servers[i][0],int(Globals.Servers[i][1])), inb=b"", outb=b"")
             events = EVENT_READ | EVENT_WRITE
             self.selector.register(self.serverConnections[i],events,data=data)
 

@@ -267,22 +267,22 @@ class Client:
         sys.stdout.write(MAGENTA + ">>> You: " + GREEN)
         sys.stdout.flush()     
         
-    def add_recipient(self,input):
+    def add_recipient(self, name_of_user):
         curs = self.database_connection.cursor()
-        curs.execute("""SELECT userpubkey FROM usercreds WHERE username=%s""", (input,))
+        curs.execute("""SELECT userpubkey FROM usercreds WHERE username=%s""", (name_of_user,))
         pub_key_string = curs.fetchall()
         if len(pub_key_string) == 0:
             curs.close()
             return False
         else:
-            self.receivers[input] = pub_key_string
+            self.receivers[name_of_user] = pub_key_string
             curs.close()
             return True
             #self.cryptography.get_rsa_encrypt_key(pub_key_string[0][0].encode())
         
     def get_recipient(self):
         """Get all messages from history from a given contact, ordered by time, and display"""
-        self.receivers=[]
+        self.receivers={}
         
         while True:
             sys.stdout.write(CYAN + '\nChoose your chat (start with "-g" if it is a group, "-cg" to create a group): ' + BLUE) 
