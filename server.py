@@ -90,13 +90,12 @@ class Server:
             self.onlineUserSockets[msg] = s
             conn.setblocking(False)
             data = SimpleNamespace(username=msg)
-            events = EVENT_READ | EVENT_WRITE
+            events = selectors.EVENT_READ | selectors.EVENT_WRITE
             self.selector.register(conn,events,data=data)
             return
             
         
-        user_credentials: dict = json.loads(msg)
-        username = user_credentials['Username']
+        username = msg['Username']
 #     password = user_credentials['Password']
 #     newuser = user_credentials['Newuser']
         
@@ -122,7 +121,7 @@ class Server:
 
         print("Accepted connection from " + RED + str(addr) + RESET + " with username "  + GREEN + username + RESET)
         self.numClients += 1
-    
+        Globals.Servers[self.index] += 1    
 #     # curs = self.databaseServer.cursor()
 #     # curs.execute("INSERT INTO \"usercreds\" (username, userpwd) VALUES (%s,%s)",(username,password))
 #     # curs.close()
@@ -134,7 +133,6 @@ class Server:
         curs.execute("SELECT msgid,jsonmsg,sendtime FROM pending WHERE receiver=%s ORDER BY sendtime",(username,))
     
         messages = curs.fetchall()
-        self.onlineUserSockets[username].requests.addrequest(messages)
         
         # self.onlineUserSockets[username].sendall(json.dumps(messages,default=str).encode())
         # self.onlineUserSockets[username].sendall(str(len(messages)).encode())
@@ -151,8 +149,7 @@ class Server:
 
     # def accept_connection(self, conn: socket.socket, addr, username: str, password: str):
     #     print("Accepted connection from " + RED + str(addr) + RESET + " with username "  + GREEN + username + RESET)
-    #     self.numClients += 1
-        
+    #     self.numClients += 1        
     #     self.onlineUserSockets[username] = conn # change to bool = True
     #     conn.sendall('valid'.encode())
         
@@ -180,7 +177,7 @@ class Server:
         data: SimpleNamespace = key.data
         username = data.username
         try:
-            if mask & EVENT_READ:
+            if mask & selectors.EVENT_READ:
                 msg_str = self.onlineUserSockets[username].read()
                 # recv_data = sock.recv(1024)  # Should be ready to read
                 if msg_str:
@@ -219,6 +216,7 @@ class Server:
                         self.serverConnections[int(username[7:])]=None
                     else:
                         self.numClients -= 1
+                        Globals.Servers[self.index] -= 1
                         self.onlineUserSockets.pop(username)
                     sock.close()
             # if mask & EVENT_WRITE:
@@ -251,13 +249,14 @@ class Server:
         
     def makeKn(self):
         for i in range(0,int(self.index)):
-            self.serverConnections[i] = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            self.serverConnections[i].connect((Globals.Servers[i][0],int(Globals.Servers[i][1])))
-            s = "Server " + self.index
-            self.serverConnections[i].sendall(s.encode())
-            data = SimpleNamespace(username=s, addr=(Globals.Servers[i][0],int(Globals.Servers[i][1])))
+            s = "Server " + str(i)
+            temp_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            temp_sock.connect((Globals.Servers[i][0],int(Globals.Servers[i][1])))
+            self.onlineUserSockets[s] = ServerMessageHandler(temp_sock, (Globals.Servers[i][0],int(Globals.Servers[i][1])),s)
+            self.onlineUserSockets[s].write(s)
+            data = SimpleNamespace(username="Server "+self.index)
             events = selectors.EVENT_READ | selectors.EVENT_WRITE
-            self.selector.register(self.serverConnections[i],events,data=data)
+            self.selector.register(self.onlineUserSockets[s],events,data=data)
 
     def num_active_clients(self):
         return self.numClients

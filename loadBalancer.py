@@ -6,6 +6,7 @@ import psycopg2
 from server import Server
 from globals import Globals
 from selectors import DefaultSelector, EVENT_READ, EVENT_WRITE, SelectorKey
+from message import *
 
 # load balancer server
 class LoadBalancer:
@@ -17,6 +18,7 @@ class LoadBalancer:
         self.userDBName = database
         self.algorithm = algorithm
         self.selector = DefaultSelector()
+        self.handler = None;
         self.databaseServer = psycopg2.connect(
             database=self.userDBName,
             host=self.HOST,
@@ -35,23 +37,26 @@ class LoadBalancer:
         Creates a new account on corresponding request. The accepted client is connected to a chosen server"""
         
         conn, addr = self.sock.accept()  # Should be ready to read
+        self.handler = ServerMessageHandler(conn, addr)
 
-        msg = conn.recv(8192).decode()
+        msg = self.handler.read()
         print(msg)
-        user_credentials: dict = json.loads(msg)
-        
+        user_credentials = msg
+
         username = user_credentials['Username']
         password = user_credentials['Password']
         user_priv_key = user_credentials['Private_Key']
         user_pub_key = user_credentials['Public_Key']
         newuser = user_credentials['Newuser']
+        
+        self.handler.connectedTo=username
 
         curs = self.databaseServer.cursor()
         curs.execute("SELECT * FROM \"usercreds\" WHERE username=%s",(username,))
         data = curs.fetchall()
         if newuser:
             if len(data) > 0:
-                conn.sendall("invalid".encode())
+                self.handler.write("invalid")
                 print("yes1")
                 return
             else:
@@ -59,14 +64,15 @@ class LoadBalancer:
                 self.databaseServer.commit()
         elif (len(data) == 0 or password != data[0][2]):
             # print(data[0][2])
-            conn.sendall("invalid".encode())
+            self.handler.write("invalid")
             # conn.close()
             print("yes2")
             return
 
         # connect the user to server
         server = self.choose_server()
-        conn.sendall(json.dumps({"hostname": server[0], "port": server[1]}).encode())
+        self.handler.write({"hostname": server[0], "port": server[1]})
+        # conn.sendall(json.dumps({"hostname": server[0], "port": server[1]}).encode())
         curs.execute("UPDATE \"usercreds\" SET connectedto=%s WHERE username=%s",(self.servers.index(server),username))
         self.databaseServer.commit()
         curs.close()
@@ -74,11 +80,11 @@ class LoadBalancer:
         # server.accept_client(conn, addr, username, password)
 
     def choose_server(self) -> list[str]:
-        # ans = self.servers[0]
-        # for server in self.servers:
-        #     if server.num_active_clients() < ans.num_active_clients():
-        #         ans = server
-        # return ans
+        ans = 0
+        for i in range(self.servers):
+            if Globals.Servers[i][2] < ans:
+                ans = i
+        return Globals.Servers[i]
         return self.servers[0]
     
     def run(self):

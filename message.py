@@ -1,5 +1,4 @@
 import sys
-import selectors
 import json
 import io
 import struct
@@ -16,6 +15,9 @@ class Message:
         self.fernet_key = key
         self.group_name = grp_name
     
+    def get_json(self):
+        return {"Sender": self.sender, "Recipient": self.recipient, "Message": self.message, "Key": self.fernet_key, "Group_Name": self.group_name }
+
     def __repr__(self) -> str:
         return json.dumps({"Sender": self.sender, "Recipient": self.recipient, "Message": self.message, "Key": self.fernet_key, "Group_Name": self.group_name })
 

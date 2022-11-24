@@ -6,6 +6,7 @@ from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.backends import default_backend
 from message import Message
 import binascii
+from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 
 class Crypt:
 
@@ -94,7 +95,40 @@ class Crypt:
         digest = hashes.Hash(hashes.SHA256(), default_backend())
         digest.update(password.encode())
         b = digest.finalize()
-        return binascii.hexlify(b).decode()         
+        return binascii.hexlify(b).decode()
+
+    # password encryption, salt = b""
+    def password_encrypt(self, password: str, message_obj : Message) -> Message:
+        pwd_bytes = password.encode()
+        kdf = PBKDF2HMAC(
+            algorithm=hashes.SHA256(),
+            length=32,
+            salt=b"",
+            iterations=390000,
+        )
+        key = kdf.derive(pwd_bytes)
+        f = Fernet(key)
+        pwd_encrypted_msg = Message(message_obj.sender, message_obj.recipient, message_obj.message, message_obj.fernet_key, message_obj.group_name)
+        pwd_encrypted_msg.message = f.encrypt(message_obj.message.encode()).decode()
+        pwd_encrypted_msg.fernet_key = f.encrypt(message_obj.fernet_key.encode()).decode()
+        return pwd_encrypted_msg
+
+    def password_decrypt(self, password : str, message_obj : Message) -> Message:
+        pwd_bytes = password.encode()
+        kdf = PBKDF2HMAC(
+            algorithm=hashes.SHA256(),
+            length=32,
+            salt=b"",
+            iterations=390000,
+        )
+        key = kdf.derive(pwd_bytes)
+        f = Fernet(key)
+
+        pwd_decrypted_msg = Message(message_obj.sender, message_obj.recipient, message_obj.message, message_obj.fernet_key, message_obj.group_name)
+        pwd_decrypted_msg.message = f.decrypt(message_obj.message.encode()).decode()
+        pwd_decrypted_msg.fernet_key = f.decrypt(message_obj.fernet_key.encode()).decode()
+        return pwd_decrypted_msg
+
 
 
 

@@ -4,11 +4,12 @@ import sys
 import ast
 import datetime
 import select
+import selectors
 from color_codes import *
 import psycopg2
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 from crypto import Crypt
-from message import Message
+from message import *
 from globals import Globals
 
 class Client:
@@ -17,43 +18,47 @@ class Client:
     (unique) username of client, along with a 'receiver' which is the current receiver. 
     """
 
-    def __init__(self) -> None:
+    def __init__(self, database) -> None:
         """Constructor"""
         self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM) # the client's socket
         self.HOST = Globals.default_host  # The server's hostname or IP address
         self.PORT = 61001 if len(sys.argv) == 1 else 61002  # The port used by the server
         self.LB_HOST = Globals.default_host  # The load balancer's hostname or IP address
         self.LB_PORT = 61051 if len(sys.argv) == 1 else 61012  # The port used by the load balancer
-        
+        self.handler = None
         self.username = None
-        self.receivers: dict[str, str] = {}
+        self.password = None
+        self.receivers: dict[str, str] = {} # receiver to their public key
+        self.database = database
         self.inAGroup = False
-        self.chat_id = -1
-
+        self.isAdmin = False
+        self.selector = selectors.DefaultSelector()
+        self.selector.register(fileobj=sys.stdin, events=selectors.EVENT_READ, data=None) 
         self.sqlConnection = None # database connection object
         
         # connection to main server database (to access public keys and list of users)
         self.database_connection = psycopg2.connect(
-            database='fastchat_users',
+            database=self.database,
             host=self.HOST,
             user="postgres",
             password="password",
             port="5432"
         )
-        self.cryptography = Crypt()
-        # add fields to remember username and password to auto-login next time. (use a local client-specific database/file to store local client stuff)
+        self.cryptography = Crypt() 
+        # TODO: add fields to remember username and password to auto-login next time. (use a local client-specific database/file to store local client stuff)
         
     def login(self) -> None:
         """Asks login details from user, and sends them to server for authentication.
         Enter -1 if new user. Also connects to the PostGRESQL server for database handling."""
         self.s.connect((self.LB_HOST, self.LB_PORT)) # go to port self.PORT on machine self.HOST
         try:
-            while(True):
+            while True:
                 username = input(BOLD_BLACK + "Username (type -1 to create an account): " + MAGENTA)
                 newuser = (username == '-1')
                 if newuser:
                     username = input(BOLD_BLACK + "Choose username: " + MAGENTA)
                 password = input(BOLD_BLACK + ("Choose " if newuser else "") + "Password: " + MAGENTA)
+                self.password = password
                 print(RESET)
                 
                 priv_key = None
@@ -64,19 +69,22 @@ class Client:
                     pub_key = self.cryptography.get_rsa_public_str().decode()
                 hashed_password = self.cryptography.hash_string(password)
                 login_data = {"Username" : username, "Password" : hashed_password, "Newuser" : newuser, "Private_Key" : priv_key, "Public_Key" : pub_key}
-                self.s.sendall(json.dumps(login_data).encode())
+                #self.s.sendall(json.dumps(login_data).encode())
+                self.handler = ServerMessageHandler(self.s, (self.LB_HOST, self.LB_PORT))
+                self.handler.write(login_data)
                 
-                data = self.s.recv(1024).decode()
+                data = self.handler.read()
                 print(data)
                 if (data in ["invalid", ""]): # the "" is just in case the data doesn't make it to the client before the load balancer returns - okay weird bug to fix
                     print(CYAN + ("This username already exists, please try again." if newuser else "Invalid username or password, please try again.") + RESET)
                 else: 
                     print(data)
-                    server_data = json.loads(data)
                     self.s.close()
                     self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                    self.s.connect((server_data['hostname'], int(server_data['port'])))
-                    self.s.sendall(json.dumps({"Username": username}).encode())
+                    self.s.connect((data['hostname'], int(data['port'])))
+                    self.handler = ServerMessageHandler(self.s, (data['hostname'], int(data['port'])))
+                    self.handler.write({"Username": username})
+                    self.selector.register(fileobj=self.s,events= selectors.EVENT_READ | selectors.EVENT_WRITE ,data="Server")
                     break
 
             if newuser:
@@ -120,6 +128,7 @@ class Client:
                                 FOREIGN KEY (chat_id) REFERENCES chats(chat_id),
                                 sender_name VARCHAR(255) NOT NULL,
                                 msg TEXT NOT NULL,
+                                fernetkey TEXT NOT NULL,
                                 t TIMESTAMP NOT NULL
                                 )
                             """) # Any other relevent name for time?
@@ -143,19 +152,24 @@ class Client:
             print(self.sqlConnection)
             
             # load pending messages onto the client's database
-            m = self.s.recv(65536).decode() # change to iterative
-            msgs = json.loads(m)
+            size = self.handler.read() # change to iterative
             
-            for msg in msgs:
+            for i in range(size):
                 # pendingmsg = self.s.recv(1024).decode()
                 # msg = json.loads(pendingmsg)
-                d = json.loads(msg[1])
+                d = self.handler.read()
+                msg = json.loads(d[1])
+                # decrypt the message, then encrypt with password to store in history
+                msg_obj = Message(msg['Sender'], msg['Recipient'], msg['Message'], msg['Key'], msg['Group_Name'])
+                msg_obj = self.cryptography.main_decrypt(msg_obj)
+                #encrypt with password
+                msg_obj = self.cryptography.password_encrypt(self.password, msg_obj)
                 curs = self.sqlConnection.cursor()
-                curs.execute("""INSERT INTO chats (receiver) SELECT (%s) WHERE NOT EXISTS (SELECT FROM chats WHERE receiver=%s) ON CONFLICT DO NOTHING;""",(d['Sender'],d['Sender']))
+                curs.execute("""INSERT INTO chats (receiver) SELECT (%s) WHERE NOT EXISTS (SELECT FROM chats WHERE receiver=%s) ON CONFLICT DO NOTHING;""",(msg['Sender'],msg['Sender']))
                 self.sqlConnection.commit()
-                curs.execute("SELECT (chat_id) FROM chats WHERE receiver=%s",(d['Sender'],))
+                curs.execute("SELECT chat_id FROM chats WHERE receiver=%s",(msg['Sender'],))
                 chat_id = curs.fetchall()[0][0]
-                curs.execute("INSERT INTO history (chat_id, sender_name, msg, t) VALUES (%s,%s,%s,%s)",(chat_id,d['Sender'],d['Message'],datetime.datetime.strptime(msg[2], '%Y-%m-%d %H:%M:%S.%f')))
+                curs.execute("INSERT INTO history (chat_id, sender_name, msg, fernetkey, t) VALUES (%s,%s,%s,%s,%s)",(chat_id,msg_obj.sender,msg_obj.message, msg_obj.fernet_key, datetime.datetime.strptime(d[2], '%Y-%m-%d %H:%M:%S.%f')))
                 self.sqlConnection.commit()
                 curs.close()
                 
@@ -163,7 +177,7 @@ class Client:
         except KeyboardInterrupt:
             print(BOLD_YELLOW + "\nCaught keyboard interrupt, exiting" + RESET)
             sys.exit(1)
-
+        
         self.username = username
 
     def sendMessage(self, input):
@@ -184,20 +198,21 @@ class Client:
             to_send = Message(self.username, receiver, input, None)
             print(self.receivers[receiver])
             self.cryptography.get_rsa_encrypt_key((self.receivers[receiver]).encode())
+            to_store = self.cryptography.password_encrypt(self.password, to_send)
             to_send = self.cryptography.main_encrypt(to_send)
             # print(to_send)
             
-            self.s.sendall(str(to_send).encode())
-            status = self.s.recv(1024).decode()
+            self.handler.write(to_send.get_json())
+            # status = self.s.recvdk(1024).decode() # just check here whether the recipient is there or not if you want
             #### No need now, since self.receiver is checked already by get_recipient.
             # if status == "invalid_recipient": 
             #     print(BOLD_YELLOW + "This user doesn't use FastChat " if self.inAGroup else "this group does not exist on FastChat :/" + RESET)
-            #     return
+            #     returnf
 
             curs = self.sqlConnection.cursor()
             curs.execute("SELECT (chat_id) FROM chats WHERE receiver=%s",(receiver,))
             chat_id = curs.fetchall()[0][0]
-            curs.execute("INSERT INTO history (chat_id, sender_name, msg) VALUES (%s,%s,%s)",(chat_id,to_send.sender,to_send.message))
+            curs.execute("INSERT INTO history (chat_id, sender_name, msg, fernetkey) VALUES (%s,%s,%s,%s)",(chat_id,to_store.sender,to_store.message, to_store.fernet_key))
             self.sqlConnection.commit()
             curs.close()
 
@@ -205,26 +220,29 @@ class Client:
         """
         Receives message, adding it into the chat history as well
         """
-        msg = self.s.recv(3072).decode()
+        msg = self.handler.read()
         data = {}
         if msg in [None, ""]:
             print(YELLOW + "msg: " + RESET + "|" + msg + "|")
             return
 
         print(YELLOW + "msg: " + RESET + "|" + msg + "|")
-        data = json.loads(msg)   
+        # data = json.loads(msg)   
         data = self.cryptography.main_decrypt(Message(data['Sender'], data['Recipient'], data['Message'], data['Key'], data['Group_Name'])) 
+        to_store = self.cryptography.password_encrypt(self.password, data)
         print(YELLOW + "data: " + RESET + "|" + str(data) + "|\n\n")
         
         curs = self.sqlConnection.cursor()
-        curs.execute("SELECT (chat_id) FROM chats WHERE receiver=%s",(data.group_name if data.group_name else data.sender,))
+
+        rec = data.group_name if data.group_name else data.sender
+        curs.execute("SELECT chat_id FROM chats WHERE receiver=%s",(rec,))
         tmp = curs.fetchall()
         if len(tmp) == 0:
-            curs.execute("INSERT INTO chats (receiver) VALUES (%s)", (data.group_name if data.group_name else data.sender,))
-            curs.execute("SELECT (chat_id) FROM chats WHERE receiver=%s",(data.group_name if data.group_name else data.sender,))
+            curs.execute("INSERT INTO chats (receiver) VALUES (%s)", (rec,))
+            curs.execute("SELECT chat_id FROM chats WHERE receiver=%s",(rec,))
             tmp = curs.fetchall()
         chat_id = tmp[0][0]
-        curs.execute("INSERT INTO history (chat_id, sender_name, msg) VALUES (%s,%s,%s)",(chat_id, data.sender, data.message))
+        curs.execute("INSERT INTO history (chat_id, sender_name, msg, fernetkey) VALUES (%s,%s,%s,%s)",(chat_id, to_store.sender, to_store.message, to_store.fernet_key))
         self.sqlConnection.commit()
         curs.close()
         
@@ -241,32 +259,66 @@ class Client:
 
         try:
             while True:
-                input_streams = [self.s, sys.stdin]
-                inputs = select.select(input_streams, [], [], 180)[0] # remove timeout?, Change to selector? Does similar
-                
-                for input in inputs:
-                    if input is self.s:
+                events = self.selector.select(timeout=None)
+                for key, mask in events:
+                    if key.data is "Server" and mask & selectors.EVENT_READ:
                         print()
                         self.receiveMessage()
                         self.display()
-                        
                     else:
                         input = sys.stdin.readline()[:-1]
+                        
+                        # check bunch of flags (stuff you would do using the gui on whatsapp)
                         if input == "-cd": # user would like to change the dm
                             self.receiver = None
                             self.get_recipient()
                         elif input == "-e": # user wants to exit
                             print(BOLD_BLUE + "Thank you for using FastChat!" + RESET)
                             return
+                        elif input == "-add": # user wants to add member to group
+                            self.add_member()
+                        elif input == "-del": # user wants to delete member from group
+                            self.delete_member()
+                        
                         else:
                             self.sendMessage(input)
                         self.display()
-                        
         except KeyboardInterrupt:
             print(BOLD_BLUE + "\nThank you for using FastChat!" + RESET)
             self.s.close()
             self.sqlConnection.close()
             sys.exit(1)
+        
+        # self.selector.close()
+        
+        # try:
+        #     while True:
+        #         input_streams = [self.s, sys.stdin]
+        #         inputs = select.select(input_streams, [], [], 180)[0] # remove timeout?, Change to selector? Does similar
+                
+        #         for input in inputs:
+        #             if input is self.s:
+        #                 print()
+        #                 self.receiveMessage()
+        #                 self.display()
+                        
+        #             else:
+        #                 input = sys.stdin.readline()[:-1]
+        #                 if input == "-cd": # user would like to change the dm
+        #                     self.receiver = None
+        #                     self.get_recipient()
+        #                 elif input == "-e": # user wants to exit
+        #                     print(BOLD_BLUE + "Thank you for using FastChat!" + RESET)
+        #                     return
+        #                 else:
+        #                     self.sendMessage(input)
+        #                 self.display()
+                        
+        # except KeyboardInterrupt:
+        #     print(BOLD_BLUE + "\nThank you for using FastChat!" + RESET)
+        #     self.s.close()
+        #     self.sqlConnection.close()
+        #     sys.exit(1)
 
     def display(self):
         """Prompt"""
@@ -303,22 +355,29 @@ class Client:
             if rvr[:3] == '-g ':
                 rvr = 'group_' + rvr[3:] # that's how group names are stored in the database. We prepend the 'group_' tag to allow for a dm and a group name to be identical.
                 cursor = self.database_connection.cursor()
-                cursor.execute("""SELECT groupmembers FROM groups WHERE groupname=%s""", (rvr,))
-                members = cursor.fetchall()
+                cursor.execute("""SELECT groupmembers, adminlist FROM groups WHERE groupname=%s""", (rvr,))
+                grp_data = cursor.fetchall()
                 cursor.close()
-                if len(members)==0:
+                if len(grp_data) == 0:
                     print(BOLD_YELLOW + "This group doesn't exist" + RESET)
                     continue
-                else:
-                    members = ast.literal_eval(members[0][0])
-                    curs_to_insert = self.sqlConnection.cursor()
-                    curs_to_insert.execute("""INSERT INTO chats (receiver) SELECT (%s) WHERE NOT EXISTS (SELECT FROM chats WHERE receiver=%s) ON CONFLICT DO NOTHING;""",(rvr,rvr))
-                    self.sqlConnection.commit()
-                    curs_to_insert.close()
-                    for member in members:
-                        if member!=self.username:
-                            self.add_recipient(member)
-                    
+                
+                adminlist = ast.literal_eval(grp_data[0][1])
+                members = ast.literal_eval(grp_data[0][0])
+                if self.username not in members:
+                    print(BOLD_YELLOW  + "You are not a participant of this group" + RESET)
+                    continue
+                
+                curs_to_insert = self.sqlConnection.cursor()
+                curs_to_insert.execute("""INSERT INTO chats (receiver) SELECT (%s) WHERE NOT EXISTS (SELECT FROM chats WHERE receiver=%s) ON CONFLICT DO NOTHING;""",(rvr,rvr))
+                self.sqlConnection.commit()
+                curs_to_insert.close()
+                for member in members:
+                    if member == self.username:
+                        continue
+                    self.add_recipient(member)
+                if self.username in adminlist:
+                    self.isAdmin = True
                     
             elif rvr[:4] == '-cg ':
                 rvr = 'group_' + rvr[4:]
@@ -328,6 +387,7 @@ class Client:
                 cursor.close()
                 if len(members)==0:
                     self.create_group(rvr)
+                    self.isAdmin = True
                 else:
                     print(BOLD_YELLOW + "This group name already exist. Try another" + RESET)
                     continue; 
@@ -374,12 +434,17 @@ class Client:
             return
 
         curs = self.sqlConnection.cursor()
-        curs.execute("SELECT (chat_id) FROM chats WHERE receiver=%s",(rvr,))
+        curs.execute("SELECT chat_id FROM chats WHERE receiver=%s",(rvr,))
         chat_id = curs.fetchall()[0][0]
-        curs.execute(f"SELECT (chat_id, sender_name, msg, t) FROM history WHERE chat_id={chat_id} ORDER BY t DESC LIMIT 20")
+        curs.execute(f"SELECT chat_id, sender_name, msg, fernetkey,t FROM history WHERE chat_id={chat_id} ORDER BY t DESC LIMIT 20")
         messages = curs.fetchall()
         for message in reversed(messages):
-            print(message) # color differently based on user or receiver sent
+            msg_obj = Message(None, None, message[2], message[3], None)
+            msg_obj = self.cryptography.password_decrypt(self.password, msg_obj)
+            message[2] = msg_obj.message
+            message[3] = msg_obj.fernet_key
+            print(MAGENTA + ">>> " + ("You: " if message[1] == self.username else BLUE + message[1]) + GREEN + message[2]) # color differently based on user or receiver sent
+        print(RESET)
         curs.close()
 
     def create_group(self, groupname):
@@ -388,8 +453,7 @@ class Client:
         admins = [self.username]
         i = 0
         while i < num_to_add:
-            print(GREEN + "Username #" + str(i+1) + ": (say -x to skip this user and move on to the next)" + BLUE)
-            name_of_user = input()
+            name_of_user = input(GREEN + "Username #" + str(i+1) + ": (say -x to skip this user and move on to the next)" + BLUE)
             if name_of_user == '-x':
                 i += 1
                 continue
@@ -414,6 +478,74 @@ class Client:
         curs.execute("""INSERT INTO chats (receiver) VALUES (%s)""", (groupname,))
         self.sqlConnection.commit()
         curs.close()
+
+    def add_member(self):
+        if not self.inAGroup:
+            print(YELLOW + "Cannot add a member to a DM, of course :)" + RESET)
+            return
+
+        if not self.isAdmin:
+            print(YELLOW + "You are not an Admin, so cannot add members to the group" + RESET)
+            return
+
+        added_is_admin = False
+        added_successfully = False
+        while True:
+            name_of_user = input(RED + "Whom would you like to add? (type -x if you want to go back)" + GREEN)
+            if name_of_user == '-x':
+                print(RESET)
+                return
+            added_successfully = self.add_recipient(name_of_user)
+            if not added_successfully: 
+                print(BOLD_YELLOW + "This user doesn't use FastChat4, try again." + RESET)
+                continue
+            while True:
+                print(RED + "Do you want to make this user an admin?(y/n): " + BLUE)
+                ans = input()
+                if ans == 'y': added_is_admin = True
+                elif ans != 'n': continue
+                break
+            break
+
+        curs = self.database_connection.cursor()
+        curs.execute("""SELECT groupmembers, adminlist FROM groups WHERE groupmembers=%s""", (str(self.receivers),))
+        data = curs.fetchall()
+        groupmembers_init = data[0][0]
+        data[0][0] = str(ast.literal_eval(data[0][0]).append(name_of_user))
+        if added_is_admin:
+            data[0][1] = str(ast.literal_eval(data[0][1]).append(name_of_user))
+        curs.execute("""UPDATE groups SET groupmembers=%s, adminlist=%s WHERE groupmembers=%s""", (data[0][0], data[0][1], groupmembers_init))
+        print(BLUE + "Successfully added member " + GREEN + name_of_user + BLUE + "!" + RESET)
+
+    def delete_member(self):
+        if not self.inAGroup:
+            print(YELLOW + "Cannot delete a member from a DM, of course :)" + RESET)
+            return
+
+        if not self.isAdmin:
+            print(YELLOW + "You are not an Admin, so cannot delete members from the group" + RESET)
+            return
+
+        while True:
+            name_of_user = input(RED + "Whom would you like to delete (type -x if you want to go back)? " + GREEN)
+            if name_of_user == '-x':
+                print(RESET)
+                return
+            if name_of_user not in self.receivers:
+                print(YELLOW + "This user isn't part of this group, try again." + RESET)
+                continue
+            break
+
+        curs = self.database_connection.cursor()
+        curs.execute("""SELECT groupmembers, adminlist FROM groups WHERE groupmembers=%s""", (str(self.receivers),))
+        data = curs.fetchall()
+        groupmembers_init = data[0][0]
+        data[0][0] = str(ast.literal_eval(data[0][0]).remove(name_of_user))
+        admins = ast.literal_eval(data[0][1])
+        if name_of_user in admins:
+            data[0][1] = str(ast.literal_eval(data[0][1]).remove(name_of_user))
+        curs.execute("""UPDATE groups SET groupmembers=%s, adminlist=%s WHERE groupmembers=%s""", (data[0][0], data[0][1], groupmembers_init))
+        print(BLUE + "Successfully deleted member " + GREEN + name_of_user + BLUE + "!" + RESET)
 
 if __name__ == "__main__":
     client = Client()
