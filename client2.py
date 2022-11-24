@@ -161,7 +161,7 @@ class Client:
                 
 
         except KeyboardInterrupt:
-            print("Caught keyboard interrupt, exiting")
+            print(BOLD_YELLOW + "\nCaught keyboard interrupt, exiting" + RESET)
             sys.exit(1)
 
         self.username = username
@@ -218,7 +218,12 @@ class Client:
         
         curs = self.sqlConnection.cursor()
         curs.execute("SELECT (chat_id) FROM chats WHERE receiver=%s",(data.sender,))
-        chat_id = curs.fetchall()[0][0]
+        tmp = curs.fetchall()
+        if len(tmp) == 0:
+            curs.execute("INSERT INTO chats (receiver) VALUES (%s)", (data.sender,))
+            curs.execute("SELECT (chat_id) FROM chats WHERE receiver=%s",(data.sender,))
+            tmp = curs.fetchall()
+        chat_id = tmp[0][0]
         curs.execute("INSERT INTO history (chat_id, sender_name, msg) VALUES (%s,%s,%s)",(chat_id, data.sender, data.message))
         self.sqlConnection.commit()
         curs.close()
@@ -237,7 +242,7 @@ class Client:
         try:
             while True:
                 input_streams = [self.s, sys.stdin]
-                inputs = select.select(input_streams, [], [], 180)[0] # remove timeout?
+                inputs = select.select(input_streams, [], [], 180)[0] # remove timeout?, Change to selector? Does similar
                 
                 for input in inputs:
                     if input is self.s:
@@ -258,7 +263,7 @@ class Client:
                         self.display()
                         
         except KeyboardInterrupt:
-            print(BOLD_BLUE + "Thank you for using FastChat!" + RESET)
+            print(BOLD_BLUE + "\nThank you for using FastChat!" + RESET)
             self.s.close()
             self.sqlConnection.close()
             sys.exit(1)
@@ -299,13 +304,13 @@ class Client:
                 rvr = 'group_' + rvr[3:] # that's how group names are stored in the database. We prepend the 'group_' tag to allow for a dm and a group name to be identical.
                 cursor = self.database_connection.cursor()
                 cursor.execute("""SELECT groupmembers FROM groups WHERE groupname=%s""", (rvr,))
-                members = curs.fetchall()
+                members = cursor.fetchall()
                 cursor.close()
                 if len(members)==0:
                     print(BOLD_YELLOW + "This group doesn't exist" + RESET)
                     continue
                 else:
-                    members = ast.literal_eval(members[0])
+                    members = ast.literal_eval(members[0][0])
                     curs_to_insert = self.sqlConnection.cursor()
                     curs_to_insert.execute("""INSERT INTO chats (receiver) SELECT (%s) WHERE NOT EXISTS (SELECT FROM chats WHERE receiver=%s) ON CONFLICT DO NOTHING;""",(rvr,rvr))
                     self.sqlConnection.commit()
