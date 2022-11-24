@@ -20,7 +20,7 @@ class Client:
 
     def __init__(self, database) -> None:
         """Constructor"""
-        self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM) # the client's socket
+        self.s = None # the client's socket
         self.HOST = Globals.default_host  # The server's hostname or IP address
         self.PORT = 61001 if len(sys.argv) == 1 else 61002  # The port used by the server
         self.LB_HOST = Globals.default_host  # The load balancer's hostname or IP address
@@ -50,9 +50,11 @@ class Client:
     def login(self) -> None:
         """Asks login details from user, and sends them to server for authentication.
         Enter -1 if new user. Also connects to the PostGRESQL server for database handling."""
-        self.s.connect((self.LB_HOST, self.LB_PORT)) # go to port self.PORT on machine self.HOST
+         # go to port self.PORT on machine self.HOST
         try:
             while True:
+                self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                self.s.connect((self.LB_HOST, self.LB_PORT))
                 username = input(BOLD_BLACK + "Username (type -1 to create an account): " + MAGENTA)
                 newuser = (username == '-1')
                 if newuser:
@@ -69,7 +71,7 @@ class Client:
                     pub_key = self.cryptography.get_rsa_public_str().decode()
                 hashed_password = self.cryptography.hash_string(password)
                 login_data = {"Username" : username, "Password" : hashed_password, "Newuser" : newuser, "Private_Key" : priv_key, "Public_Key" : pub_key}
-                #self.s.sendall(json.dumps(login_data).encode())
+                # self.s.sendall(json.dumps(login_data).encode())
                 self.handler = ServerMessageHandler(self.s, (self.LB_HOST, self.LB_PORT))
                 print("hello1")
                 self.handler.write(login_data)
@@ -87,7 +89,10 @@ class Client:
                     self.handler.write({"Username": username})
                     self.selector.register(fileobj=self.s,events= selectors.EVENT_READ | selectors.EVENT_WRITE ,data="Server")
                     break
-
+                self.s.close()
+                
+            
+            # outside the while loop
             if newuser:
                 self.sqlConnection = psycopg2.connect(
                     host=self.HOST,
@@ -155,7 +160,7 @@ class Client:
             # load pending messages onto the client's database
             size = self.handler.read() # change to iterative
             
-            for i in range(size):
+            for i in range(int(size)):
                 # pendingmsg = self.s.recv(1024).decode()
                 # msg = json.loads(pendingmsg)
                 d = self.handler.read()
@@ -199,11 +204,12 @@ class Client:
             to_send = Message(self.username, receiver, input, None)
             print(self.receivers[receiver])
             self.cryptography.get_rsa_encrypt_key((self.receivers[receiver]).encode())
+            encrypted_to_send = self.cryptography.main_encrypt(to_send)
+            to_send.fernet_key = self.cryptography.fernet_encrypt_key
             to_store = self.cryptography.password_encrypt(self.password, to_send)
-            to_send = self.cryptography.main_encrypt(to_send)
             # print(to_send)
             
-            self.handler.write(to_send.get_json())
+            self.handler.write(encrypted_to_send.get_json())
             # status = self.s.recvdk(1024).decode() # just check here whether the recipient is there or not if you want
             #### No need now, since self.receiver is checked already by get_recipient.
             # if status == "invalid_recipient": 
@@ -379,6 +385,7 @@ class Client:
                     self.add_recipient(member)
                 if self.username in adminlist:
                     self.isAdmin = True
+                self.inAGroup = True
                     
             elif rvr[:4] == '-cg ':
                 rvr = 'group_' + rvr[4:]
@@ -402,6 +409,7 @@ class Client:
                 else:
                     print(BOLD_YELLOW + "This user doesn't exist" + RESET)
                     continue
+                self.inAGroup = False
             # check if recipient/group is actually present
             # database_connection = psycopg2.connect(
             #         database='fastchat_users',
@@ -479,6 +487,7 @@ class Client:
         curs.execute("""INSERT INTO chats (receiver) VALUES (%s)""", (groupname,))
         self.sqlConnection.commit()
         curs.close()
+        self.inAGroup = True
 
     def add_member(self):
         if not self.inAGroup:
