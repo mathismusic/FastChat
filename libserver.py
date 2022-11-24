@@ -3,6 +3,7 @@ import selectors
 import json
 import io
 import struct
+import socket
 
 request_search = {
     "morpheus": "Follow the white rabbit. \U0001f430",
@@ -13,8 +14,8 @@ request_search = {
 
 class Message:
     def __init__(self, selector, sock, addr):
-        self.selector = selector
-        self.sock = sock
+        self.selector: selectors.DefaultSelector = selector
+        self.sock: socket.socket = sock
         self.addr = addr
         self._recv_buffer = b""
         self._send_buffer = b""
@@ -60,7 +61,7 @@ class Message:
             else:
                 self._send_buffer = self._send_buffer[sent:]
                 # Close when the buffer is drained. The response has been sent.
-                if sent and not self._send_buffer:
+                if sent != 0 and not self._send_buffer:
                     self.close()
 
     def _json_encode(self, obj, encoding):
@@ -128,7 +129,7 @@ class Message:
         if self._jsonheader_len is not None:
             if self.jsonheader is None:
                 self.process_jsonheader()
-
+ 
         if self.jsonheader:
             if self.request is None:
                 self.process_request()
