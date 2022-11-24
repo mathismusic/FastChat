@@ -213,15 +213,15 @@ class Client:
 
         print(YELLOW + "msg: " + RESET + "|" + msg + "|")
         data = json.loads(msg)   
-        data = self.cryptography.main_decrypt(Message(data['Sender'], data['Recipient'], data['Message'], data['Key'])) 
+        data = self.cryptography.main_decrypt(Message(data['Sender'], data['Recipient'], data['Message'], data['Key'], data['Group_Name'])) 
         print(YELLOW + "data: " + RESET + "|" + str(data) + "|\n\n")
         
         curs = self.sqlConnection.cursor()
-        curs.execute("SELECT (chat_id) FROM chats WHERE receiver=%s",(data.sender,))
+        curs.execute("SELECT (chat_id) FROM chats WHERE receiver=%s",(data.group_name if data.group_name else data.sender,))
         tmp = curs.fetchall()
         if len(tmp) == 0:
-            curs.execute("INSERT INTO chats (receiver) VALUES (%s)", (data.sender,))
-            curs.execute("SELECT (chat_id) FROM chats WHERE receiver=%s",(data.sender,))
+            curs.execute("INSERT INTO chats (receiver) VALUES (%s)", (data.group_name if data.group_name else data.sender,))
+            curs.execute("SELECT (chat_id) FROM chats WHERE receiver=%s",(data.group_name if data.group_name else data.sender,))
             tmp = curs.fetchall()
         chat_id = tmp[0][0]
         curs.execute("INSERT INTO history (chat_id, sender_name, msg) VALUES (%s,%s,%s)",(chat_id, data.sender, data.message))
