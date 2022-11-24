@@ -71,8 +71,9 @@ class Client:
                 login_data = {"Username" : username, "Password" : hashed_password, "Newuser" : newuser, "Private_Key" : priv_key, "Public_Key" : pub_key}
                 #self.s.sendall(json.dumps(login_data).encode())
                 self.handler = ServerMessageHandler(self.s, (self.LB_HOST, self.LB_PORT))
+                print("hello1")
                 self.handler.write(login_data)
-                
+                print("hello2")
                 data = self.handler.read()
                 print(data)
                 if (data in ["invalid", ""]): # the "" is just in case the data doesn't make it to the client before the load balancer returns - okay weird bug to fix
@@ -261,7 +262,7 @@ class Client:
             while True:
                 events = self.selector.select(timeout=None)
                 for key, mask in events:
-                    if key.data is "Server" and mask & selectors.EVENT_READ:
+                    if key.data == "Server" and mask & selectors.EVENT_READ:
                         print()
                         self.receiveMessage()
                         self.display()
@@ -471,7 +472,7 @@ class Client:
 
 
         curs = self.database_connection.cursor()
-        curs.execute("""INSERT INTO groups (groupname, groupmembers, adminlist) VALUES (%s, %s, %s)""", (groupname, str(self.receivers), str(admins)))
+        curs.execute("""INSERT INTO groups (groupname, groupmembers, adminlist) VALUES (%s, %s, %s)""", (groupname, str(self.receivers.keys()), str(admins)))
         self.database_connection.commit()
         curs.close()
         curs = self.sqlConnection.cursor()
@@ -548,6 +549,6 @@ class Client:
         print(BLUE + "Successfully deleted member " + GREEN + name_of_user + BLUE + "!" + RESET)
 
 if __name__ == "__main__":
-    client = Client()
+    client = Client('fastchat_users')
     client.login()
     client.serve()
