@@ -20,7 +20,8 @@ class Message:
         return json.dumps({"Sender": self.sender, "Recipient": self.recipient, "Message": self.message, "Key": self.fernet_key, "Group_Name": self.group_name })
 
 class MessageHandler:
-    def __init__(self, selector, sock, addr):
+    def __init__(self, connectedTo, sock, addr):
+        self.connectedTo = connectedTo
         self.sock = sock
         self.addr = addr
         self._recv_buffer = b""
@@ -28,19 +29,19 @@ class MessageHandler:
         self._jsonheader_len = None
         self.jsonheader = None
         self.request = None
-        self.response_created = False
+        self.requests = []
 
-    def _set_selector_events_mask(self, mode):
-        """Set selector to listen for events: mode is 'r', 'w', or 'rw'."""
-        if mode == "r":
-            events = selectors.EVENT_READ
-        elif mode == "w":
-            events = selectors.EVENT_WRITE
-        elif mode == "rw":
-            events = selectors.EVENT_READ | selectors.EVENT_WRITE
-        else:
-            raise ValueError(f"Invalid events mask mode {mode!r}.")
-        self.selector.modify(self.sock, events, data=self)
+    # def _set_selector_events_mask(self, mode):
+    #     """Set selector to listen for events: mode is 'r', 'w', or 'rw'."""
+    #     if mode == "r":
+    #         events = selectors.EVENT_READ
+    #     elif mode == "w":
+    #         events = selectors.EVENT_WRITE
+    #     elif mode == "rw":
+    #         events = selectors.EVENT_READ | selectors.EVENT_WRITE
+    #     else:
+    #         raise ValueError(f"Invalid events mask mode {mode!r}.")
+    #     self.selector.modify(self.sock, events, data=self)
 
     def _read(self):
         try:
@@ -57,7 +58,7 @@ class MessageHandler:
 
     def _write(self):
         if self._send_buffer:
-            print(f"Sending {self._send_buffer!r} to {self.addr}")
+            #print(f"Sending {self._send_buffer!r} to {self.addr}")
             try:
                 # Should be ready to write
                 sent = self.sock.send(self._send_buffer)
@@ -68,7 +69,8 @@ class MessageHandler:
                 self._send_buffer = self._send_buffer[sent:]
                 # Close when the buffer is drained. The response has been sent.
                 if sent and not self._send_buffer:
-                    self.close()
+                    #self.close()
+                    pass
 
     def _json_encode(self, obj, encoding):
         return json.dumps(obj, ensure_ascii=False).encode(encoding)
@@ -96,35 +98,33 @@ class MessageHandler:
         return message
 
     def _create_response_json_content(self):
-        action = self.request.get("action")
-        if action == "search":
-            query = self.request.get("value")
-            answer = request_search.get(query) or f"No match for '{query}'."
-            content = {"result": answer}
-        else:
-            content = {"result": f"Error: invalid action '{action}'."}
         content_encoding = "utf-8"
         response = {
-            "content_bytes": self._json_encode(content, content_encoding),
+            "content_bytes": self._json_encode(self.request, content_encoding),
             "content_type": "text/json",
             "content_encoding": content_encoding,
         }
         return response
 
-    def _create_response_binary_content(self):
-        response = {
-            "content_bytes": b"First 10 bytes of request: "
-            + self.request[:10],
-            "content_type": "binary/custom-server-binary-type",
-            "content_encoding": "binary",
-        }
-        return response
+    # def _create_response_binary_content(self):
+    #     response = {
+    #         "content_bytes": b"First 10 bytes of request: "
+    #         + self.request[:10],
+    #         "content_type": "binary/custom-server-binary-type",
+    #         "content_encoding": "binary",
+    #     }
+    #     return response
 
     def process_events(self, mask):
         if mask & selectors.EVENT_READ:
             self.read()
         if mask & selectors.EVENT_WRITE:
             self.write()
+
+        self._jsonheader_len = None
+        self.jsonheader = None
+        self.request = None
+        
 
     def read(self):
         self._read()
@@ -135,15 +135,12 @@ class MessageHandler:
         if self._jsonheader_len is not None:
             if self.jsonheader is None:
                 self.process_jsonheader()
-
-        if self.jsonheader:
-            if self.request is None:
                 self.process_request()
 
     def write(self):
+        self.request = self.requests.pop()
         if self.request:
-            if not self.response_created:
-                self.create_response()
+            self.create_response()
 
         self._write()
 
@@ -197,24 +194,38 @@ class MessageHandler:
         self._recv_buffer = self._recv_buffer[content_len:]
         if self.jsonheader["content-type"] == "text/json":
             encoding = self.jsonheader["content-encoding"]
-            self.request = self._json_decode(data, encoding)
-            print(f"Received request {self.request!r} from {self.addr}")
-        else:
+            msg = self._json_decode(data, encoding)
+            return msg
+            # curs = self.databaseServer.cursor()
+            # curs.execute("SELECT * FROM \"usercreds\" WHERE username=%s",(msg['Recipient'],))
+            # userentry = curs.fetchall()
+            # if len(userentry)==0:
+            #     self.requests.insert("invalid Recipient")
+            #     return
+            # elif msg['Recipient'] not in onlineUsers:
+            #     if userentry[0][5]==-1:
+            #         curs.execute("INSERT INTO pending (sender,receiver,jsonmsg) VALUES (%s,%s,%s) ",(msg['Sender'],msg['Recipient'],msg))
+            #         self.databaseServer.commit()
+            #     else:
+            #         self.serverConnections[userentry[0][5]].sendall(recv_data)
+                    
+            # else: # user is online and in the same server
+            #     self.onlineUserSockets[msg['Recipient']].sendall(recv_data)
+            # curs.close()
+            
+            #print(f"Received request {self.request!r} from {self.addr}")
+        #else:
             # Binary or unknown content-type
-            self.request = data
-            print(
-                f"Received {self.jsonheader['content-type']} "
-                f"request from {self.addr}"
-            )
+            #self.request = data
+            # print(
+            #     f"Received {self.jsonheader['content-type']} "
+            #     f"request from {self.addr}"
+            # )
         # Set selector to listen for write events, we're done reading.
-        self._set_selector_events_mask("w")
+        # self._set_selector_events_mask("w")
 
     def create_response(self):
         if self.jsonheader["content-type"] == "text/json":
             response = self._create_response_json_content()
-        else:
-            # Binary or unknown content-type
-            response = self._create_response_binary_content()
-        message = self._create_message(**response)
-        self.response_created = True
+        message = self._create_message(response)
         self._send_buffer += message
