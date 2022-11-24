@@ -6,6 +6,7 @@ from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.backends import default_backend
 from message import Message
 import binascii
+import base64
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 
 class Crypt:
@@ -79,7 +80,7 @@ class Crypt:
 
     # return encrypted message, public encrypt key must be set BEFORE this
     def main_encrypt(self, message_obj : Message) -> Message:
-        encrypted = Message(message_obj.sender, message_obj.recipient, message_obj.message, message_obj.fernet_key, message_obj.grp_name)
+        encrypted = Message(message_obj.sender, message_obj.recipient, message_obj.message, message_obj.fernet_key, message_obj.group_name)
         encrypted.fernet_key = binascii.hexlify(self.gen_fernet_encrypt_key()).decode()
         encrypted.message = self.fernet_encrypt_message(message_obj.message)
         return encrypted
@@ -105,8 +106,9 @@ class Crypt:
             length=32,
             salt=b"",
             iterations=390000,
+            backend = default_backend()
         )
-        key = kdf.derive(pwd_bytes)
+        key = base64.urlsafe_b64encode(kdf.derive(pwd_bytes))
         f = Fernet(key)
         pwd_encrypted_msg = Message(message_obj.sender, message_obj.recipient, message_obj.message, message_obj.fernet_key, message_obj.group_name)
         pwd_encrypted_msg.message = f.encrypt(message_obj.message.encode()).decode()
@@ -120,8 +122,9 @@ class Crypt:
             length=32,
             salt=b"",
             iterations=390000,
+            backend = default_backend()
         )
-        key = kdf.derive(pwd_bytes)
+        key = base64.urlsafe_b64encode(kdf.derive(pwd_bytes))
         f = Fernet(key)
 
         pwd_decrypted_msg = Message(message_obj.sender, message_obj.recipient, message_obj.message, message_obj.fernet_key, message_obj.group_name)
