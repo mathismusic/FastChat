@@ -1,6 +1,6 @@
 import sys
 import socket
-from selectors import DefaultSelector, EVENT_READ, EVENT_WRITE, SelectorKey
+import selectors
 from types import SimpleNamespace
 import json
 import psycopg2
@@ -22,7 +22,7 @@ class Server:
         self.PORT = int(port)  # The port used by the server
         self.index = index
         self.numClients = 0
-        self.selector = DefaultSelector()
+        self.selector = selectors.DefaultSelector()
         self.userDBName = database
         self.onlineUserSockets: dict[str, ServerMessageHandler] = {}
         self.serverConnections=[None]*len(Globals.Servers)
@@ -145,8 +145,8 @@ class Server:
             self.onlineUserSockets[username].write(mess)
             self.databaseServer.commit()
         curs.close()
-        data = SimpleNamespace(username=username, addr=addr, inb=b"", outb=b"")
-        events = EVENT_READ | EVENT_WRITE
+        data = SimpleNamespace(username=username, addr=addr)
+        events = selectors.EVENT_READ | selectors.EVENT_WRITE
         self.selector.register(conn, events, data=data)
 
     # def accept_connection(self, conn: socket.socket, addr, username: str, password: str):
@@ -172,11 +172,11 @@ class Server:
     #     data = SimpleNamespace(username=username, addr=addr, inb=b"", outb=b"")
     #     events = EVENT_READ | EVENT_WRITE
     #     self.selector.register(conn, events, data=data)
-    def serve_client(self, key: SelectorKey, mask: bool):
+    def serve_client(self, key: selectors.SelectorKey, mask: bool):
         """
         Main serve loop, monitors client connections.
         """
-        sock: socket = key.fileobj
+        sock: socket.socket = key.fileobj
         data: SimpleNamespace = key.data
         username = data.username
         try:
@@ -234,7 +234,7 @@ class Server:
 
     def run(self):
         # lsock.setblocking(False)
-        self.selector.register(fileobj=self.sock, events=EVENT_READ, data=None)
+        self.selector.register(fileobj=self.sock, events=selectors.EVENT_READ, data=None)
 
         try:
             while True:
@@ -255,8 +255,8 @@ class Server:
             self.serverConnections[i].connect((Globals.Servers[i][0],int(Globals.Servers[i][1])))
             s = "Server " + self.index
             self.serverConnections[i].sendall(s.encode())
-            data = SimpleNamespace(username=s, addr=(Globals.Servers[i][0],int(Globals.Servers[i][1])), inb=b"", outb=b"")
-            events = EVENT_READ | EVENT_WRITE
+            data = SimpleNamespace(username=s, addr=(Globals.Servers[i][0],int(Globals.Servers[i][1])))
+            events = selectors.EVENT_READ | selectors.EVENT_WRITE
             self.selector.register(self.serverConnections[i],events,data=data)
 
     def num_active_clients(self):
