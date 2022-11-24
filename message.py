@@ -49,6 +49,7 @@ class ServerMessageHandler:
         try:
             # Should be ready to read
             data = self.sock.recv(4096)
+            print("whew: " + data + "::")
         except BlockingIOError:
             # Resource temporarily unavailable (errno EWOULDBLOCK)
             pass
@@ -119,23 +120,26 @@ class ServerMessageHandler:
         
 
     def read(self):
-        while True:
-            self._read()
-            if self._recv_buffer == "":
-                return ""
+        try:
+            while True:
+                self._read()
+                if self._recv_buffer == "":
+                    return ""
 
-            if self._jsonheader_len is None:
-                self.process_protoheader()
+                if self._jsonheader_len is None:
+                    self.process_protoheader()
 
-            if self._jsonheader_len is not None:
-                if self.jsonheader is None:
-                    self.process_jsonheader()
-                    msg = self.process_request()
-                    if msg != "":
-                        self._jsonheader_len = None
-                        self.jsonheader = None
-                        self.request = None
-                        return msg
+                if self._jsonheader_len is not None:
+                    if self.jsonheader is None:
+                        self.process_jsonheader()
+                        msg = self.process_request()
+                        if msg != "":
+                            self._jsonheader_len = None
+                            self.jsonheader = None
+                            self.request = None
+                            return msg
+        except Exception as e:
+            print(e) # fix outside later
 
     def write(self, msg):
         self.requests.append(msg)
@@ -230,5 +234,5 @@ class ServerMessageHandler:
 
     def create_response(self):
         response = self._create_response_json_content()
-        message = self._create_message(response)
+        message = self._create_message(**response)
         self._send_buffer += message
