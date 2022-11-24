@@ -77,15 +77,15 @@ class Crypt:
         )
 
     # return encrypted message, public encrypt key must be set BEFORE this
-    def main_encrypt(self, message_obj) -> Message:
-        encrypted = Message(message_obj.sender, message_obj.recipient, message_obj.message, message_obj.fernet_key)
+    def main_encrypt(self, message_obj : Message) -> Message:
+        encrypted = Message(message_obj.sender, message_obj.recipient, message_obj.message, message_obj.fernet_key, message_obj.grp_name)
         encrypted.fernet_key = binascii.hexlify(self.gen_fernet_encrypt_key()).decode()
         encrypted.message = self.fernet_encrypt_message(message_obj.message)
         return encrypted
 
     #decrypt message, private key must be set BEFORE this
-    def main_decrypt(self, message_obj) -> Message:
-        decrypted = Message(message_obj.sender, message_obj.recipient, message_obj.message, message_obj.fernet_key)
+    def main_decrypt(self, message_obj : Message) -> Message:
+        decrypted = Message(message_obj.sender, message_obj.recipient, message_obj.message, message_obj.fernet_key, message_obj.group_name)
         decrypted.fernet_key = self.decrypt_fernet_key(binascii.unhexlify(message_obj.fernet_key.encode())).decode()
         decrypted.message = self.fernet_decrypt_message(message_obj.message, decrypted.fernet_key.encode())
         return decrypted
