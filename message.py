@@ -19,8 +19,8 @@ class Message:
     def __repr__(self) -> str:
         return json.dumps({"Sender": self.sender, "Recipient": self.recipient, "Message": self.message, "Key": self.fernet_key, "Group_Name": self.group_name })
 
-class MessageHandler:
-    def __init__(self, connectedTo, sock, addr):
+class ServerMessageHandler:
+    def __init__(self,sock, addr,connectedTo="_default"):
         self.connectedTo = connectedTo
         self.sock = sock
         self.addr = addr
@@ -113,36 +113,38 @@ class MessageHandler:
     #         "content_type": "binary/custom-server-binary-type",
     #         "content_encoding": "binary",
     #     }
-    #     return response
-
-    def process_events(self, mask):
-        if mask & selectors.EVENT_READ:
-            self.read()
-        if mask & selectors.EVENT_WRITE:
-            self.write()
-
-        self._jsonheader_len = None
-        self.jsonheader = None
-        self.request = None
+    #     return response        
         
 
     def read(self):
-        self._read()
+        while True:
+            self._read()
+            if self._recv_buffer == "":
+                return ""
 
-        if self._jsonheader_len is None:
-            self.process_protoheader()
+            if self._jsonheader_len is None:
+                self.process_protoheader()
 
-        if self._jsonheader_len is not None:
-            if self.jsonheader is None:
-                self.process_jsonheader()
-                self.process_request()
+            if self._jsonheader_len is not None:
+                if self.jsonheader is None:
+                    self.process_jsonheader()
+                    msg = self.process_request()
+                    if msg != "":
+                        self._jsonheader_len = None
+                        self.jsonheader = None
+                        self.request = None
+                        return msg
 
-    def write(self):
-        self.request = self.requests.pop()
+    def write(self, msg):
+        self.requests.append(msg)
+        self.request = self.requests.pop(0)
         if self.request:
             self.create_response()
 
         self._write()
+        self._jsonheader_len = None
+        self.jsonheader = None
+        self.request = None
 
     def close(self):
         print(f"Closing connection to {self.addr}")
@@ -189,7 +191,7 @@ class MessageHandler:
     def process_request(self):
         content_len = self.jsonheader["content-length"]
         if not len(self._recv_buffer) >= content_len:
-            return
+            return ""
         data = self._recv_buffer[:content_len]
         self._recv_buffer = self._recv_buffer[content_len:]
         if self.jsonheader["content-type"] == "text/json":
@@ -200,11 +202,11 @@ class MessageHandler:
             # curs.execute("SELECT * FROM \"usercreds\" WHERE username=%s",(msg['Recipient'],))
             # userentry = curs.fetchall()
             # if len(userentry)==0:
-            #     self.requests.insert("invalid Recipient")
+            #     self.requests.("invalid Recipient")
             #     return
             # elif msg['Recipient'] not in onlineUsers:
             #     if userentry[0][5]==-1:
-            #         curs.execute("INSERT INTO pending (sender,receiver,jsonmsg) VALUES (%s,%s,%s) ",(msg['Sender'],msg['Recipient'],msg))
+            #         curs.execute(" INTO pending (sender,receiver,jsonmsg) VALUES (%s,%s,%s) ",(msg['Sender'],msg['Recipient'],msg))
             #         self.databaseServer.commit()
             #     else:
             #         self.serverConnections[userentry[0][5]].sendall(recv_data)
@@ -225,7 +227,6 @@ class MessageHandler:
         # self._set_selector_events_mask("w")
 
     def create_response(self):
-        if self.jsonheader["content-type"] == "text/json":
-            response = self._create_response_json_content()
+        response = self._create_response_json_content()
         message = self._create_message(response)
         self._send_buffer += message

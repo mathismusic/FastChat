@@ -7,6 +7,7 @@ import psycopg2
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 from color_codes import *
 from globals import Globals
+from message import *
 
 # 192.168.103.215
 
@@ -23,7 +24,7 @@ class Server:
         self.numClients = 0
         self.selector = DefaultSelector()
         self.userDBName = database
-        self.onlineUserSockets: dict(str, socket.socket)= {}
+        self.onlineUserSockets: dict[str, ServerMessageHandler] = {}
         self.serverConnections=[None]*len(Globals.Servers)
 
         # self.databaseServer = psycopg2.connect(
@@ -73,17 +74,22 @@ class Server:
         print(f"Server #{self.index} is operational!")
         print(f"Listening on {(self.HOST, self.PORT)}")
 
-    def accept_client(self):
+    def accept_connection(self):
         """Accepts the connection request from a client, after correct authentication.
         Creates a new account on corresponding request."""
         conn, addr = self.sock.accept()  # Should be ready to read
-        msg = conn.recv(1024).decode()
+        
+        s = ServerMessageHandler(conn, addr)
+        
+        msg = s.read()
+        # msg = conn.recv(1024).decode()
         
         if msg[:7]=="Server ":
-            serverindex = int(msg[7:])
-            self.serverConnections[serverindex] = conn
+            s.connectedTo = msg
+            # serverindex = int(msg[7:])
+            self.onlineUserSockets[msg] = s
             conn.setblocking(False)
-            data = SimpleNamespace(username=msg, addr=addr, inb=b"", outb=b"")
+            data = SimpleNamespace(username=msg)
             events = EVENT_READ | EVENT_WRITE
             self.selector.register(conn,events,data=data)
             return
@@ -121,25 +127,29 @@ class Server:
 #     # curs.execute("INSERT INTO \"usercreds\" (username, userpwd) VALUES (%s,%s)",(username,password))
 #     # curs.close()
     
-        self.onlineUserSockets[username] = conn # change to bool = True
+        self.onlineUserSockets[username] = s # change to bool = True
 #     conn.sendall('valid'.encode())
     
         conn.setblocking(False)
         curs.execute("SELECT msgid,jsonmsg,sendtime FROM pending WHERE receiver=%s ORDER BY sendtime",(username,))
     
         messages = curs.fetchall()
-        self.onlineUserSockets[username].sendall(json.dumps(messages,default=str).encode())
+        self.onlineUserSockets[username].requests.addrequest(messages)
+        
+        # self.onlineUserSockets[username].sendall(json.dumps(messages,default=str).encode())
         # self.onlineUserSockets[username].sendall(str(len(messages)).encode())
+        self.onlineUserSockets[username].write(str(len(messages)))
         for mess in messages:
             # self.onlineUserSockets[username].sendall(json.dumps(mess[3]).encode())
             curs.execute("DELETE FROM pending WHERE msgid=%s",(mess[0],))
+            self.onlineUserSockets[username].write(mess)
             self.databaseServer.commit()
         curs.close()
         data = SimpleNamespace(username=username, addr=addr, inb=b"", outb=b"")
         events = EVENT_READ | EVENT_WRITE
         self.selector.register(conn, events, data=data)
 
-    # def accept_client(self, conn: socket.socket, addr, username: str, password: str):
+    # def accept_connection(self, conn: socket.socket, addr, username: str, password: str):
     #     print("Accepted connection from " + RED + str(addr) + RESET + " with username "  + GREEN + username + RESET)
     #     self.numClients += 1
         
@@ -168,47 +178,58 @@ class Server:
         """
         sock: socket = key.fileobj
         data: SimpleNamespace = key.data
+        username = data.username
         try:
             if mask & EVENT_READ:
-                recv_data = sock.recv(1024)  # Should be ready to read
-                if recv_data != b'':
-                    data.outb += recv_data
-                    msg = json.loads(recv_data.decode())
+                msg_str = self.onlineUserSockets[username].read()
+                # recv_data = sock.recv(1024)  # Should be ready to read
+                if msg_str:
+                    # data.outb += recv_data
+                    msg = json.loads(msg_str)
                     curs = self.databaseServer.cursor()
                     curs.execute("SELECT * FROM \"usercreds\" WHERE username=%s",(msg['Recipient'],))
                     userentry = curs.fetchall()
                     if len(userentry)==0:
-                        sock.sendall('invalid_recipient'.encode())
+                        self.onlineUserSockets[username].write("invalid_recipient")
+                        # sock.sendall('invalid_recipient'.encode())
                         return
                     elif msg['Recipient'] not in self.onlineUserSockets:
                         if userentry[0][5]==-1:
-                            curs.execute("INSERT INTO pending (sender,receiver,jsonmsg) VALUES (%s,%s,%s) ",(msg['Sender'],msg['Recipient'],recv_data.decode()))
+                            curs.execute("INSERT INTO pending (sender,receiver,jsonmsg) VALUES (%s,%s,%s) ",(msg['Sender'],msg['Recipient'],msg_str))
                             self.databaseServer.commit()
                         else:
-                            self.serverConnections[userentry[0][5]].sendall(recv_data)
+                            self.onlineUserSockets["Server " + str(userentry[0][5])].write(msg_str)
+                            # self.serverConnections[userentry[0][5]].sendall(recv_data)
                             
                     else: # user is online and in the same server
-                        self.onlineUserSockets[msg['Recipient']].sendall(recv_data)
+                        self.onlineUserSockets[msg['Recipient']].write(msg_str)
+                        # self.onlineUserSockets[msg['Recipient']].sendall(recv_data)
+                    
                     curs.close()
+                    # give acknowledgement of received to the sender
+                    if username[7:] != 'Server ': 
+                        self.onlineUserSockets[username].write("received")
                     # print(f"Client {data.username} to {msg['Recipient']}:", msg['Message'])
+                
+                # else the read returned nothing - the client did not try to send anything
                 else:
-                    print("Closing connection from address " + RED + str(data.addr) + RESET + ", username " + GREEN + data.username + RESET)
+                    print("Closing connection from address " + RED + str(data.addr) + RESET + ", username " + GREEN + username + RESET)
                     self.selector.unregister(sock)
-                    if data.username[:7]=="Server ":
-                        self.serverConnections[int(data.username[7:])]=None
+                    if username[:7]=="Server ":
+                        self.serverConnections[int(username[7:])]=None
                     else:
                         self.numClients -= 1
-                        self.onlineUserSockets.pop(data.username)
+                        self.onlineUserSockets.pop(username)
                     sock.close()
-            if mask & EVENT_WRITE:
-                if data.outb:
-                    response = "received"
-                    data.outb = response.encode()
-                    # print(f"Echoing {data.outb!r} to {data.addr}")
-                    sent = sock.send(data.outb)  # Should be ready to write
-                    data.outb = data.outb[sent:]
-        except BrokenPipeError as e:
-            print(f"Client " + GREEN + data.username + RESET + " closed the connection.")
+            # if mask & EVENT_WRITE:
+            #     if data.outb:
+            #         response = "received"
+            #         data.outb = response.encode()
+            #         # print(f"Echoing {data.outb!r} to {data.addr}")
+            #         sent = sock.send(data.outb)  # Should be ready to write
+            #         data.outb = data.outb[sent:]
+        except BrokenPipeError:
+            print(f"Client " + GREEN + username + RESET + " closed the connection.")
             return
 
     def run(self):
@@ -220,7 +241,7 @@ class Server:
                 events = self.selector.select(timeout=None)
                 for key, mask in events:
                     if key.data is None:
-                        self.accept_client()
+                        self.accept_connection()
                     else:
                         self.serve_client(key, mask)
         except KeyboardInterrupt:
@@ -232,7 +253,7 @@ class Server:
         for i in range(0,int(self.index)):
             self.serverConnections[i] = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             self.serverConnections[i].connect((Globals.Servers[i][0],int(Globals.Servers[i][1])))
-            s = "Server "+self.index
+            s = "Server " + self.index
             self.serverConnections[i].sendall(s.encode())
             data = SimpleNamespace(username=s, addr=(Globals.Servers[i][0],int(Globals.Servers[i][1])), inb=b"", outb=b"")
             events = EVENT_READ | EVENT_WRITE
