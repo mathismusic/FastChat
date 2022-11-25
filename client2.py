@@ -11,6 +11,7 @@ from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 from crypto import Crypt
 from message import *
 from globals import Globals
+from types import SimpleNamespace
 
 class Client:
     """
@@ -25,7 +26,7 @@ class Client:
         :param: database: The name of the main users database
         :type: database str
         """
-        self.s = None# the client's socket
+        self.s = None # the client's socket
         self.HOST = Globals.default_host  # The server's hostname or IP address
         self.PORT = 61001 if len(sys.argv) == 1 else 61002  # The port used by the server
         self.LB_HOST = Globals.default_host  # The load balancer's hostname or IP address
@@ -59,136 +60,140 @@ class Client:
         for database handling. Pending messages are fetched and stores in the personal database.
         Generates the RSA tokens for new users."""
          # go to port self.PORT on machine self.HOST
+         
         try:
-            while True:
-                self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                username = input(BOLD_BLACK + "Username (type -1 to create an account): " + MAGENTA)
-                newuser = (username == '-1')
-                if newuser:
-                    username = input(BOLD_BLACK + "Choose username: " + MAGENTA)
-                password = input(BOLD_BLACK + ("Choose " if newuser else "") + "Password: " + MAGENTA)
-                self.password = password
-                print(RESET)
-                
-                priv_key = None
-                pub_key = None
-                if newuser:
-                    self.cryptography.gen_rsa_key()
-                    priv_key = self.cryptography.get_rsa_private_str(password).decode()
-                    pub_key = self.cryptography.get_rsa_public_str().decode()
-                hashed_password = self.cryptography.hash_string(password)
-                login_data = {"Username" : username, "Password" : hashed_password, "Newuser" : newuser, "Private_Key" : priv_key, "Public_Key" : pub_key}
-                # self.s.sendall(json.dumps(login_data).encode())
-                self.s.connect((self.LB_HOST, self.LB_PORT)) 
-                self.handler = ServerMessageHandler(self.s, (self.LB_HOST, self.LB_PORT))
-                self.handler.write(login_data)
-                #print(login_data)
-                data = self.handler.read()
-                #print(data)
-                if (data in ["invalid", ""]): # the "" is just in case the data doesn't make it to the client before the load balancer returns - okay weird bug to fix
-                    print(CYAN + ("This username already exists, please try again." if newuser else "Invalid username or password, please try again.") + RESET)
-                else:
-                    print(data)
-                    self.s.close()
+            
+                while True:
                     self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                    self.s.connect((data['hostname'], int(data['port'])))
-                    self.handler = ServerMessageHandler(self.s, (data['hostname'], int(data['port'])))
-                    self.handler.write({"Username": username})
-                    print(username)
-                    self.s.setblocking(True)
-                    self.selector.register(fileobj=self.s,events= selectors.EVENT_READ ,data="Server")
-                    break
-                self.s.close()
+                    username = input(BOLD_BLACK + "Username (type -1 to create an account): " + MAGENTA)
+                    newuser = (username == '-1')
+                    if newuser:
+                        username = input(BOLD_BLACK + "Choose username: " + MAGENTA)
+                    password = input(BOLD_BLACK + ("Choose " if newuser else "") + "Password: " + MAGENTA)
+                    self.password = password
+                    print(RESET)
+                    
+                    priv_key = None
+                    pub_key = None
+                    if newuser:
+                        self.cryptography.gen_rsa_key()
+                        priv_key = self.cryptography.get_rsa_private_str(password).decode()
+                        pub_key = self.cryptography.get_rsa_public_str().decode()
+                    hashed_password = self.cryptography.hash_string(password)
+                    login_data = {"Username" : username, "Password" : hashed_password, "Newuser" : newuser, "Private_Key" : priv_key, "Public_Key" : pub_key}
+                    # self.s.sendall(json.dumps(login_data).encode())
+                    self.s.connect((self.LB_HOST, self.LB_PORT)) 
+                    self.handler = ServerMessageHandler(self.s, (self.LB_HOST, self.LB_PORT))
+                    self.handler.write(login_data)
+                    #print(login_data)
+                    
+                    data = self.handler.read()
+                    #print(data)
+                    if (data in ["invalid", ""]): # the "" is just in case the data doesn't make it to the client before the load balancer returns - okay weird bug to fix
+                        print(CYAN + ("This username already exists, please try again." if newuser else "Invalid username or password, please try again.") + RESET)
+                    else:
+                        print(data)
+                        self.s.close()
+                        self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                        self.s.connect((data['hostname'], int(data['port'])))
+                        self.handler = ServerMessageHandler(self.s, (data['hostname'], int(data['port'])))
+                        self.handler.write({"Username": username})
+                        # print(username)
+                        self.s.setblocking(True)
+                        data = SimpleNamespace(username = "Server", outb=[{"Username": username}],inb=[])
+                        # self.selector.register(fileobj=self.s,events= selectors.EVENT_READ ,data=data)
+                        break
+                    self.s.close()
+                        
                 
-            
-            # outside the while loop
-            if newuser:
-                self.sqlConnection = psycopg2.connect(
-                    host=self.HOST,
-                    user="postgres",
-                    password="password",
-                    port="5432"
-                )
-                self.sqlConnection.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
-                curs = self.sqlConnection.cursor()
-                curs.execute("DROP DATABASE IF EXISTS " + username.lower())
-                curs.execute("CREATE DATABASE " + username.lower())
-                self.sqlConnection.commit()
-                self.sqlConnection.close()
+                # outside the while loop
+                if newuser:
+                    self.sqlConnection = psycopg2.connect(
+                        host=self.HOST,
+                        user="postgres",
+                        password="password",
+                        port="5432"
+                    )
+                    self.sqlConnection.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
+                    curs = self.sqlConnection.cursor()
+                    curs.execute("DROP DATABASE IF EXISTS " + username.lower())
+                    curs.execute("CREATE DATABASE " + username.lower())
+                    self.sqlConnection.commit()
+                    self.sqlConnection.close()
 
-                self.sqlConnection = psycopg2.connect(
-                    database=username,
-                    host=self.HOST,
-                    user="postgres",
-                    password="password",
-                    port="5432"
-                )
-                curs = self.sqlConnection.cursor()
-                curs.execute("""CREATE TABLE privatekey (
-                                privkey TEXT NOT NULL
-                                )
-                            """)
-                self.sqlConnection.commit()
-                curs.execute("""INSERT INTO privatekey (privkey) VALUES (%s)""", (priv_key,))
-                self.sqlConnection.commit()
+                    self.sqlConnection = psycopg2.connect(
+                        database=username,
+                        host=self.HOST,
+                        user="postgres",
+                        password="password",
+                        port="5432"
+                    )
+                    curs = self.sqlConnection.cursor()
+                    curs.execute("""CREATE TABLE privatekey (
+                                    privkey TEXT NOT NULL
+                                    )
+                                """)
+                    self.sqlConnection.commit()
+                    curs.execute("""INSERT INTO privatekey (privkey) VALUES (%s)""", (priv_key,))
+                    self.sqlConnection.commit()
 
-                curs.execute("""CREATE TABLE chats (
-                                chat_id SERIAL PRIMARY KEY,
-                                receiver VARCHAR(255) NOT NULL UNIQUE
-                                )
-                            """) # is UNIQUE required?
-                self.sqlConnection.commit()
-                curs.execute(""" CREATE TABLE history (
-                                chat_id SERIAL,
-                                FOREIGN KEY (chat_id) REFERENCES chats(chat_id),
-                                sender_name VARCHAR(255) NOT NULL,
-                                msg TEXT NOT NULL,
-                                fernetkey TEXT NOT NULL,
-                                t TIMESTAMP NOT NULL
-                                )
-                            """) # Any other relevent name for time?
-                curs.execute("""ALTER TABLE history ALTER COLUMN t SET DEFAULT now();""")
-                self.sqlConnection.commit()
-                curs.close()
-            else:
-                self.sqlConnection = psycopg2.connect(
-                    database=username,
-                    host=self.HOST,
-                    user="postgres",
-                    password="password",
-                    port="5432"
-                )
+                    curs.execute("""CREATE TABLE chats (
+                                    chat_id SERIAL PRIMARY KEY,
+                                    receiver VARCHAR(255) NOT NULL UNIQUE
+                                    )
+                                """) # is UNIQUE required?
+                    self.sqlConnection.commit()
+                    curs.execute(""" CREATE TABLE history (
+                                    chat_id SERIAL,
+                                    FOREIGN KEY (chat_id) REFERENCES chats(chat_id),
+                                    sender_name VARCHAR(255) NOT NULL,
+                                    msg TEXT NOT NULL,
+                                    fernetkey TEXT NOT NULL,
+                                    t TIMESTAMP NOT NULL
+                                    )
+                                """) # Any other relevent name for time?
+                    curs.execute("""ALTER TABLE history ALTER COLUMN t SET DEFAULT now();""")
+                    self.sqlConnection.commit()
+                    curs.close()
+                else:
+                    self.sqlConnection = psycopg2.connect(
+                        database=username,
+                        host=self.HOST,
+                        user="postgres",
+                        password="password",
+                        port="5432"
+                    )
+                    
+                    curs = self.sqlConnection.cursor()
+                    curs.execute("""SELECT privkey FROM privatekey""")
+                    encrypted_bytes = curs.fetchall()[0][0].encode()
+                    self.cryptography.set_priv_key(password, encrypted_bytes)
+
+                print(self.sqlConnection)
                 
-                curs = self.sqlConnection.cursor()
-                curs.execute("""SELECT privkey FROM privatekey""")
-                encrypted_bytes = curs.fetchall()[0][0].encode()
-                self.cryptography.set_priv_key(password, encrypted_bytes)
-
-            print(self.sqlConnection)
-            
-            # load pending messages onto the client's database
-            size = self.handler.read() # change to iterative
-            print(int(size))
-            for i in range(int(size)):
-                # pendingmsg = self.s.recv(1024).decode()
-                # msg = json.loads(pendingmsg)
-                d = self.handler.read()
-                print(d)
-                msg = json.loads(d[1])
-                # decrypt the message, then encrypt with password to store in history
-                msg_obj = Message(msg['Sender'], msg['Recipient'], msg['Message'], msg['Key'], msg['Group_Name'])
-                msg_obj = self.cryptography.main_decrypt(msg_obj)
-                #encrypt with password
-                msg_obj = self.cryptography.password_encrypt(self.password, msg_obj)
-                curs = self.sqlConnection.cursor()
-                curs.execute("""INSERT INTO chats (receiver) SELECT (%s) WHERE NOT EXISTS (SELECT FROM chats WHERE receiver=%s) ON CONFLICT DO NOTHING;""",(msg['Sender'],msg['Sender']))
-                self.sqlConnection.commit()
-                curs.execute("SELECT chat_id FROM chats WHERE receiver=%s",(msg['Sender'],))
-                chat_id = curs.fetchall()[0][0]
-                curs.execute("INSERT INTO history (chat_id, sender_name, msg, fernetkey, t) VALUES (%s,%s,%s,%s,%s)",(chat_id,msg_obj.sender,msg_obj.message, msg_obj.fernet_key, datetime.datetime.strptime(d[2], '%Y-%m-%d %H:%M:%S.%f')))
-                self.sqlConnection.commit()
-                curs.close()
-                
+                # load pending messages onto the client's database
+                size = self.handler.read() # change to iterative
+                print(int(size))
+                for i in range(int(size)):
+                    # pendingmsg = self.s.recv(1024).decode()
+                    # msg = json.loads(pendingmsg)
+                    d = self.handler.read()
+                    print(d)
+                    msg = json.loads(d[1])
+                    # decrypt the message, then encrypt with password to store in history
+                    msg_obj = Message(msg['Sender'], msg['Recipient'], msg['Message'], msg['Key'], msg['Group_Name'])
+                    msg_obj = self.cryptography.main_decrypt(msg_obj)
+                    #encrypt with password
+                    msg_obj = self.cryptography.password_encrypt(self.password, msg_obj)
+                    curs = self.sqlConnection.cursor()
+                    curs.execute("""INSERT INTO chats (receiver) SELECT (%s) WHERE NOT EXISTS (SELECT FROM chats WHERE receiver=%s) ON CONFLICT DO NOTHING;""",(msg['Sender'],msg['Sender']))
+                    self.sqlConnection.commit()
+                    curs.execute("SELECT chat_id FROM chats WHERE receiver=%s",(msg['Sender'],))
+                    chat_id = curs.fetchall()[0][0]
+                    curs.execute("INSERT INTO history (chat_id, sender_name, msg, fernetkey, t) VALUES (%s,%s,%s,%s,%s)",(chat_id,msg_obj.sender,msg_obj.message, msg_obj.fernet_key, datetime.datetime.strptime(d[2], '%Y-%m-%d %H:%M:%S.%f')))
+                    self.sqlConnection.commit()
+                    curs.close()
+                    
 
         except KeyboardInterrupt:
             print(BOLD_YELLOW + "\nCaught keyboard interrupt, exiting" + RESET)
@@ -222,11 +227,6 @@ class Client:
             # print(to_send)
             
             self.handler.write(encrypted_to_send.get_json())
-            # status = self.s.recvdk(1024).decode() # just check here whether the recipient is there or not if you want
-            #### No need now, since self.receiver is checked already by get_recipient.
-            # if status == "invalid_recipient": 
-            #     print(BOLD_YELLOW + "This user doesn't use FastChat " if self.inAGroup else "this group does not exist on FastChat :/" + RESET)
-            #     returnf
 
             curs = self.sqlConnection.cursor()
             curs.execute("SELECT (chat_id) FROM chats WHERE receiver=%s",(receiver,))
@@ -247,7 +247,7 @@ class Client:
             print(YELLOW + "msg: " + RESET + "|" + str(msg) + "|")
             return
 
-        #print(YELLOW + "msg: " + RESET + "|" + str(msg) + "|")
+        # print(YELLOW + "msg: " + RESET + "|" + str(msg) + "|")
         data = msg   
         
         data = self.cryptography.main_decrypt(Message(data['Sender'], data['Recipient'], data['Message'], data['Key'], data['Group_Name'])) 
@@ -291,7 +291,7 @@ class Client:
             while True:
                 events = self.selector.select(timeout=None)
                 for key, mask in events:
-                    if key.data == "Server" and mask & selectors.EVENT_READ:
+                    if key.data.username == "Server" and mask & selectors.EVENT_READ:
                         self.receiveMessage()
                     else:
                         input = sys.stdin.readline()[:-1]
@@ -308,7 +308,7 @@ class Client:
                         elif input == "-del": # user wants to delete member from group
                             self.delete_member()
                         
-                        else:
+                        elif mask & selectors.EVENT_WRITE:
                             self.sendMessage(input)
                         self.display()
         except KeyboardInterrupt:

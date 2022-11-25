@@ -78,7 +78,7 @@ class Server:
         print(f"Server #{int(self.index) + 1} is operational!")
         print(f"Listening on {(self.HOST, self.PORT)}")
 
-    def accept_connection(self):
+    def accept_connection(self, key: selectors.SelectorKey, mask):
         """Accepts the connection request from an authenticated client.
         Also accepts connections from other servers. Writes pending messages to the client."""
         conn, addr = self.sock.accept()  # Should be ready to read
@@ -100,7 +100,7 @@ class Server:
                     # serverindex = int(msg[7:])
                     self.onlineUserSockets[username] = s
                     conn.setblocking(True)
-                    data = SimpleNamespace(username=username)
+                    data = SimpleNamespace(username=username,outb=[],inb=[])
                     events = selectors.EVENT_READ | selectors.EVENT_WRITE
                     self.selector.register(conn,events,data=data)
                     return
@@ -110,19 +110,22 @@ class Server:
                 globals.Globals.Servers[int(self.index)][2] += 1
                 print(globals.Globals.Servers[int(self.index)])
                 self.onlineUserSockets[username] = s
-                data = SimpleNamespace(username=username, addr=addr)
+                data = SimpleNamespace(username=username, outb=[], inb=[])
                 events = selectors.EVENT_READ | selectors.EVENT_WRITE
                 self.selector.register(conn, events, data=data)
-            elif mask & selectors.EVENT_WRITE:
                 
                 curs = self.databaseServer.cursor()
                 curs.execute("SELECT msgid,jsonmsg,sendtime FROM pending WHERE receiver=%s ORDER BY sendtime",(username,))
                 messages = curs.fetchall()
-                self.onlineUserSockets[username].write(str(len(messages)))
+                # self.onlineUserSockets[username].write(str(len(messages)))
+                data.outb.append(str(len(messages)))
+                self.selector.modify(conn,events,data=data)
                 for mess in messages:
                     # self.onlineUserSockets[username].sendall(json.dumps(mess[3]).encode())
                     curs.execute("DELETE FROM pending WHERE msgid=%s",(mess[0],))
-                    self.onlineUserSockets[username].write(mess)
+                    #self.onlineUserSockets[username].write(mess)
+                    data.outb.append(mess)
+                    self.selector.modify(conn,events,data=data)
                     self.databaseServer.commit()
                 curs.close()
 
@@ -161,11 +164,13 @@ class Server:
                             curs.execute("INSERT INTO pending (sender,receiver,jsonmsg) VALUES (%s,%s,%s) ",(msg['Sender'],msg['Recipient'],msg_str))
                             self.databaseServer.commit()
                         else:
-                            self.onlineUserSockets["Server " + str(userentry[0][5])].write(msg)
+                            #self.onlineUserSockets["Server " + str(userentry[0][5])].write(msg)
+                            data.outb.append(msg)
                             # self.serverConnections[userentry[0][5]].sendall(recv_data)
                             
                     else: # user is online and in the same server
-                        self.onlineUserSockets[msg['Recipient']].write(msg)
+                        #self.onlineUserSockets[msg['Recipient']].write(msg)
+                        data.outb.append(msg)
                         # self.onlineUserSockets[msg['Recipient']].sendall(recv_data)
                     
                     curs.close()
@@ -188,13 +193,12 @@ class Server:
                         curs.execute("""UPDATE usercreds SET connectedto = -1 WHERE username=%s""", (username,))
                         curs.close()
                     sock.close()
-            # if mask & EVENT_WRITE:
-            #     if data.outb:
-            #         response = "received"
-            #         data.outb = response.encode()
-            #         # print(f"Echoing {data.outb!r} to {data.addr}")
-            #         sent = sock.send(data.outb)  # Should be ready to write
-            #         data.outb = data.outb[sent:]
+            if mask & selectors.EVENT_WRITE:
+                if data.outb!=[]:
+                    response = data.outb.pop(0)
+                    # print(f"Echoing {data.outb!r} to {data.addr}")
+                    self.onlineUserSockets[msg['Recipient']].write()
+                    # Should be ready to write
         except Exception as e:
             print(e)
             print(f"Client " + GREEN + username + RESET + " closed the connection.")
@@ -215,7 +219,7 @@ class Server:
                 events = self.selector.select(timeout=None)
                 for key, mask in events:
                     if key.data is None:
-                        self.accept_connection()
+                        self.accept_connection(key, mask)
                     else:
                         self.serve_client(key, mask)
         except KeyboardInterrupt:
@@ -230,11 +234,11 @@ class Server:
             temp_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             temp_sock.connect((globals.Globals.Servers[i][0],int(globals.Globals.Servers[i][1])))
             self.onlineUserSockets[s] = ServerMessageHandler(temp_sock, (globals.Globals.Servers[i][0],int(globals.Globals.Servers[i][1])),s)
-            self.onlineUserSockets[s].write({"Username": s})
-            data = SimpleNamespace(username="Server " + self.index)
+            # self.onlineUserSockets[s].write({"Username": s})
+            data = SimpleNamespace(username="Server " + self.index, inb=[], outb=[{"Username": s}])
             events = selectors.EVENT_READ | selectors.EVENT_WRITE
             self.selector.register(self.onlineUserSockets[s].sock,events,data=data)
-
+            
     def num_active_clients(self):
         return self.numClients
 
