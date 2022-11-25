@@ -225,7 +225,7 @@ class Client:
         # members = ast.literal_eval(members)
         
         for receiver in self.receivers:
-            to_send = Message(self.username, receiver, input, None)
+            to_send = Message(self.username, receiver, input, None, self.group_name if self.inAGroup else None)
             #print(self.receivers[receiver])
             self.cryptography.get_rsa_encrypt_key((self.receivers[receiver]).encode())
             encrypted_to_send = self.cryptography.main_encrypt(to_send)
@@ -241,9 +241,16 @@ class Client:
             else:
                 curs.execute("SELECT chat_id FROM chats WHERE receiver=%s",(receiver,))
             chat_id = curs.fetchall()[0][0]
+            if not self.inAGroup:
+                curs.execute("INSERT INTO history (chat_id, sender_name, msg, fernetkey) VALUES (%s,%s,%s,%s)",(chat_id,to_store.sender,to_store.message, to_store.fernet_key))
+                self.sqlConnection.commit()
+                
+        if self.inAGroup:
             curs.execute("INSERT INTO history (chat_id, sender_name, msg, fernetkey) VALUES (%s,%s,%s,%s)",(chat_id,to_store.sender,to_store.message, to_store.fernet_key))
             self.sqlConnection.commit()
-            curs.close()
+        curs.close()
+
+        
 
     def receiveMessage(self, tag=False):
         """
