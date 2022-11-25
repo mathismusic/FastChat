@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>crypto module &mdash; FastChat  documentation</title>
+      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script src="_static/doctools.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="prev" title="load balancer module" href="loadBalancer.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="index.html" class="icon icon-home"> FastChat
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="modules.html">q3</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="server.html">server module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="client.html">client module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="loadBalancer.html">load balancer module</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">crypto module</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">FastChat</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
+          <li><a href="modules.html">q3</a> &raquo;</li>
+      <li>crypto module</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/crypto.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="module-crypto">
+<span id="crypto-module"></span><h1>crypto module<a class="headerlink" href="#module-crypto" title="Permalink to this heading"></a></h1>
+<dl class="py class">
+<dt class="sig sig-object py" id="crypto.Crypt">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">crypto.</span></span><span class="sig-name descname"><span class="pre">Crypt</span></span><a class="headerlink" href="#crypto.Crypt" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>The cryptography handler class. Requires the cryptography module. Handles key generation, 
+data encryption-decryption, and password hashing.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="crypto.Crypt.decrypt_fernet_key">
+<span class="sig-name descname"><span class="pre">decrypt_fernet_key</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">encrypted_fernet_key</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">bytes</span></span></span><a class="headerlink" href="#crypto.Crypt.decrypt_fernet_key" title="Permalink to this definition"></a></dt>
+<dd><p>Decrypt the Fernet key using the RSA key</p>
+<dl class="field-list simple">
+<dt class="field-odd">Param</dt>
+<dd class="field-odd"><p>encrypted_fernet_key: The encrypted Fernet key bytes</p>
+</dd>
+<dt class="field-even">Type</dt>
+<dd class="field-even"><p>encrypted_fernet_key: bytes</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="crypto.Crypt.fernet_decrypt_message">
+<span class="sig-name descname"><span class="pre">fernet_decrypt_message</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cipher</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fernet_decrypt_key</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="headerlink" href="#crypto.Crypt.fernet_decrypt_message" title="Permalink to this definition"></a></dt>
+<dd><p>Decrypt the message with the Fernet key</p>
+<dl class="field-list simple">
+<dt class="field-odd">Param</dt>
+<dd class="field-odd"><p>cipher</p>
+</dd>
+<dt class="field-even">Type</dt>
+<dd class="field-even"><p>message: str</p>
+</dd>
+<dt class="field-odd">Param</dt>
+<dd class="field-odd"><p>fernet_decrypt_key: The Fernet decryption key</p>
+</dd>
+<dt class="field-even">Type</dt>
+<dd class="field-even"><p>fernet_decrypt_key: str</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>str</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Fernet decrypted message</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="crypto.Crypt.fernet_encrypt_message">
+<span class="sig-name descname"><span class="pre">fernet_encrypt_message</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">message</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="headerlink" href="#crypto.Crypt.fernet_encrypt_message" title="Permalink to this definition"></a></dt>
+<dd><p>Encrypt the message with the Fernet key</p>
+<dl class="field-list simple">
+<dt class="field-odd">Param</dt>
+<dd class="field-odd"><p>message</p>
+</dd>
+<dt class="field-even">Type</dt>
+<dd class="field-even"><p>message: str</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>str</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Fernet encrypted message</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="crypto.Crypt.gen_fernet_encrypt_key">
+<span class="sig-name descname"><span class="pre">gen_fernet_encrypt_key</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">bytes</span></span></span><a class="headerlink" href="#crypto.Crypt.gen_fernet_encrypt_key" title="Permalink to this definition"></a></dt>
+<dd><p>Generate and set a Fernet key, and return its RSA encrypted version</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>bytes</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Fernet key</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="crypto.Crypt.gen_rsa_key">
+<span class="sig-name descname"><span class="pre">gen_rsa_key</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">RSAPrivateKey</span></span></span><a class="headerlink" href="#crypto.Crypt.gen_rsa_key" title="Permalink to this definition"></a></dt>
+<dd><p>Generates a fresh new RSA private token, and returns a RSA.RSAPrivateKey object</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>RSA.RSAPrivateKey</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The RSAPrivateKey attribute</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="crypto.Crypt.get_rsa_encrypt_key">
+<span class="sig-name descname"><span class="pre">get_rsa_encrypt_key</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">public_bytes</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">RSAPublicKey</span></span></span><a class="headerlink" href="#crypto.Crypt.get_rsa_encrypt_key" title="Permalink to this definition"></a></dt>
+<dd><p>Gets the RSA encryption key(public) from its bytes obtained from the server database.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Param</dt>
+<dd class="field-odd"><p>public_bytes: The public key bytes</p>
+</dd>
+<dt class="field-even">Type</dt>
+<dd class="field-even"><p>public_bytes: bytes</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>RSA.RSAPublicKey</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The RSA.RSAPublicKey attribute</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="crypto.Crypt.get_rsa_private_str">
+<span class="sig-name descname"><span class="pre">get_rsa_private_str</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">password</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">bytes</span></span></span><a class="headerlink" href="#crypto.Crypt.get_rsa_private_str" title="Permalink to this definition"></a></dt>
+<dd><p>Encrypts the private key with the password.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Param</dt>
+<dd class="field-odd"><p>password: The password</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>bytes</p>
+</dd>
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>The encrypted RSA key bytes</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="crypto.Crypt.get_rsa_public_str">
+<span class="sig-name descname"><span class="pre">get_rsa_public_str</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">bytes</span></span></span><a class="headerlink" href="#crypto.Crypt.get_rsa_public_str" title="Permalink to this definition"></a></dt>
+<dd><p>Generates the unecrypted public key byte string.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>The unencrypted byte string</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>bytes</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="crypto.Crypt.hash_string">
+<span class="sig-name descname"><span class="pre">hash_string</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">password</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="headerlink" href="#crypto.Crypt.hash_string" title="Permalink to this definition"></a></dt>
+<dd><p>SHA256 hash with hex encoding.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Param</dt>
+<dd class="field-odd"><p>password: The password</p>
+</dd>
+<dt class="field-even">Type</dt>
+<dd class="field-even"><p>password: str</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>str</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The hashed password</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="crypto.Crypt.main_decrypt">
+<span class="sig-name descname"><span class="pre">main_decrypt</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">message_obj</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Message</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Message</span></span></span><a class="headerlink" href="#crypto.Crypt.main_decrypt" title="Permalink to this definition"></a></dt>
+<dd><p>Decrypt the main message, by decrypting its Fernet key with the RSA private key and then the 
+message with the Fernet. RSA private key must be set before this is called.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Param</dt>
+<dd class="field-odd"><p>message_obj: The message</p>
+</dd>
+<dt class="field-even">Type</dt>
+<dd class="field-even"><p>message_obj: Message</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>Message</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The encrypted message object</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="crypto.Crypt.main_encrypt">
+<span class="sig-name descname"><span class="pre">main_encrypt</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">message_obj</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Message</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Message</span></span></span><a class="headerlink" href="#crypto.Crypt.main_encrypt" title="Permalink to this definition"></a></dt>
+<dd><p>Encrypt the main message, with a newly generated fernet key which is assigned to the message
+after RSA encryption. RSA encrypt key must be set before this is called.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Param</dt>
+<dd class="field-odd"><p>message_obj: The message</p>
+</dd>
+<dt class="field-even">Type</dt>
+<dd class="field-even"><p>message_obj: Message</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>Message</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The encrypted message object</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="crypto.Crypt.password_decrypt">
+<span class="sig-name descname"><span class="pre">password_decrypt</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">password</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">message_obj</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Message</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Message</span></span></span><a class="headerlink" href="#crypto.Crypt.password_decrypt" title="Permalink to this definition"></a></dt>
+<dd><p>Decrypt the message with password.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Param</dt>
+<dd class="field-odd"><p>message_obj: the message</p>
+</dd>
+<dt class="field-even">Type</dt>
+<dd class="field-even"><p>message_obj: Message</p>
+</dd>
+<dt class="field-odd">Param</dt>
+<dd class="field-odd"><p>password</p>
+</dd>
+<dt class="field-even">Type</dt>
+<dd class="field-even"><p>password: str</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>Message</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The decrypted message</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="crypto.Crypt.password_encrypt">
+<span class="sig-name descname"><span class="pre">password_encrypt</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">password</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">message_obj</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Message</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Message</span></span></span><a class="headerlink" href="#crypto.Crypt.password_encrypt" title="Permalink to this definition"></a></dt>
+<dd><p>Encrypt the message with password.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Param</dt>
+<dd class="field-odd"><p>message_obj: the message</p>
+</dd>
+<dt class="field-even">Type</dt>
+<dd class="field-even"><p>message_obj: Message</p>
+</dd>
+<dt class="field-odd">Param</dt>
+<dd class="field-odd"><p>password</p>
+</dd>
+<dt class="field-even">Type</dt>
+<dd class="field-even"><p>password: str</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>Message</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The encrypted message</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="crypto.Crypt.set_priv_key">
+<span class="sig-name descname"><span class="pre">set_priv_key</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">password</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">encypted_bytes</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">RSAPrivateKey</span></span></span><a class="headerlink" href="#crypto.Crypt.set_priv_key" title="Permalink to this definition"></a></dt>
+<dd><p>Loads the RSA key from it’s serialized bytes. The keys are encrypted with the password.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Param</dt>
+<dd class="field-odd"><p>password: The password</p>
+</dd>
+<dt class="field-even">Type</dt>
+<dd class="field-even"><p>password: str</p>
+</dd>
+<dt class="field-odd">Param</dt>
+<dd class="field-odd"><p>encrypted_bytes: The encrypted byte string of the password</p>
+</dd>
+<dt class="field-even">Type</dt>
+<dd class="field-even"><p>encrypted_bytes: bytes</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>RSA.RSAPrivateKey</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The RSAPrivateKey attribute</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="loadBalancer.html" class="btn btn-neutral float-left" title="load balancer module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, Ameya V. Singh, Lisan Kadivar, Krishna N. Agaram.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

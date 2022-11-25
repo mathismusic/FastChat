@@ -70,10 +70,13 @@
  <a href="#A"><strong>A</strong></a>
  | <a href="#C"><strong>C</strong></a>
  | <a href="#D"><strong>D</strong></a>
+ | <a href="#F"><strong>F</strong></a>
  | <a href="#G"><strong>G</strong></a>
+ | <a href="#H"><strong>H</strong></a>
  | <a href="#L"><strong>L</strong></a>
  | <a href="#M"><strong>M</strong></a>
  | <a href="#N"><strong>N</strong></a>
+ | <a href="#P"><strong>P</strong></a>
  | <a href="#R"><strong>R</strong></a>
  | <a href="#S"><strong>S</strong></a>
  
@@ -81,13 +84,15 @@
 <h2 id="A">A</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="loadBalancer.html#loadBalancer.LoadBalancer.accept_client">accept_client() (loadBalancer.LoadBalancer method)</a>
+</li>
       <li><a href="server.html#server.Server.accept_connection">accept_connection() (server.Server method)</a>
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="client.html#client2.Client.add_member">add_member() (client2.Client method)</a>
+      <li><a href="client.html#client.Client.add_member">add_member() (client.Client method)</a>
 </li>
-      <li><a href="client.html#client2.Client.add_recipient">add_recipient() (client2.Client method)</a>
+      <li><a href="client.html#client.Client.add_recipient">add_recipient() (client.Client method)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -95,30 +100,57 @@
 <h2 id="C">C</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="client.html#client2.Client">Client (class in client2)</a>
+      <li><a href="loadBalancer.html#loadBalancer.LoadBalancer.check_and_allocate_client">check_and_allocate_client() (loadBalancer.LoadBalancer method)</a>
+</li>
+      <li><a href="loadBalancer.html#loadBalancer.LoadBalancer.choose_server">choose_server() (loadBalancer.LoadBalancer method)</a>
 </li>
       <li>
-    client2
+    client
 
       <ul>
-        <li><a href="client.html#module-client2">module</a>
+        <li><a href="client.html#module-client">module</a>
 </li>
       </ul></li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="client.html#client2.Client.create_group">create_group() (client2.Client method)</a>
+      <li><a href="client.html#client.Client">Client (class in client)</a>
 </li>
+      <li><a href="client.html#client.Client.create_group">create_group() (client.Client method)</a>
+</li>
+      <li><a href="crypto.html#crypto.Crypt">Crypt (class in crypto)</a>
+</li>
+      <li>
+    crypto
+
+      <ul>
+        <li><a href="crypto.html#module-crypto">module</a>
+</li>
+      </ul></li>
   </ul></td>
 </tr></table>
 
 <h2 id="D">D</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="client.html#client2.Client.delete_member">delete_member() (client2.Client method)</a>
+      <li><a href="crypto.html#crypto.Crypt.decrypt_fernet_key">decrypt_fernet_key() (crypto.Crypt method)</a>
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="client.html#client2.Client.display">display() (client2.Client method)</a>
+      <li><a href="client.html#client.Client.delete_member">delete_member() (client.Client method)</a>
+</li>
+      <li><a href="client.html#client.Client.display">display() (client.Client method)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="F">F</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="crypto.html#crypto.Crypt.fernet_decrypt_message">fernet_decrypt_message() (crypto.Crypt method)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="crypto.html#crypto.Crypt.fernet_encrypt_message">fernet_encrypt_message() (crypto.Crypt method)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -126,7 +158,27 @@
 <h2 id="G">G</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="client.html#client2.Client.get_recipient">get_recipient() (client2.Client method)</a>
+      <li><a href="crypto.html#crypto.Crypt.gen_fernet_encrypt_key">gen_fernet_encrypt_key() (crypto.Crypt method)</a>
+</li>
+      <li><a href="crypto.html#crypto.Crypt.gen_rsa_key">gen_rsa_key() (crypto.Crypt method)</a>
+</li>
+      <li><a href="client.html#client.Client.get_recipient">get_recipient() (client.Client method)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="crypto.html#crypto.Crypt.get_rsa_encrypt_key">get_rsa_encrypt_key() (crypto.Crypt method)</a>
+</li>
+      <li><a href="crypto.html#crypto.Crypt.get_rsa_private_str">get_rsa_private_str() (crypto.Crypt method)</a>
+</li>
+      <li><a href="crypto.html#crypto.Crypt.get_rsa_public_str">get_rsa_public_str() (crypto.Crypt method)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="H">H</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="crypto.html#crypto.Crypt.hash_string">hash_string() (crypto.Crypt method)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -134,7 +186,18 @@
 <h2 id="L">L</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="client.html#client2.Client.login">login() (client2.Client method)</a>
+      <li>
+    loadBalancer
+
+      <ul>
+        <li><a href="loadBalancer.html#module-loadBalancer">module</a>
+</li>
+      </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="loadBalancer.html#loadBalancer.LoadBalancer">LoadBalancer (class in loadBalancer)</a>
+</li>
+      <li><a href="client.html#client.Client.login">login() (client.Client method)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -142,13 +205,21 @@
 <h2 id="M">M</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="crypto.html#crypto.Crypt.main_decrypt">main_decrypt() (crypto.Crypt method)</a>
+</li>
+      <li><a href="crypto.html#crypto.Crypt.main_encrypt">main_encrypt() (crypto.Crypt method)</a>
+</li>
       <li><a href="server.html#server.Server.makeKn">makeKn() (server.Server method)</a>
 </li>
       <li>
     module
 
       <ul>
-        <li><a href="client.html#module-client2">client2</a>
+        <li><a href="client.html#module-client">client</a>
+</li>
+        <li><a href="crypto.html#module-crypto">crypto</a>
+</li>
+        <li><a href="loadBalancer.html#module-loadBalancer">loadBalancer</a>
 </li>
         <li><a href="server.html#module-server">server</a>
 </li>
@@ -164,24 +235,40 @@
   </ul></td>
 </tr></table>
 
-<h2 id="R">R</h2>
+<h2 id="P">P</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="client.html#client2.Client.receiveMessage">receiveMessage() (client2.Client method)</a>
+      <li><a href="crypto.html#crypto.Crypt.password_decrypt">password_decrypt() (crypto.Crypt method)</a>
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="server.html#server.Server.run">run() (server.Server method)</a>
+      <li><a href="crypto.html#crypto.Crypt.password_encrypt">password_encrypt() (crypto.Crypt method)</a>
 </li>
+  </ul></td>
+</tr></table>
+
+<h2 id="R">R</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="client.html#client.Client.receiveMessage">receiveMessage() (client.Client method)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="loadBalancer.html#loadBalancer.LoadBalancer.run">run() (loadBalancer.LoadBalancer method)</a>
+
+      <ul>
+        <li><a href="server.html#server.Server.run">(server.Server method)</a>
+</li>
+      </ul></li>
   </ul></td>
 </tr></table>
 
 <h2 id="S">S</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="client.html#client2.Client.sendMessage">sendMessage() (client2.Client method)</a>
+      <li><a href="client.html#client.Client.sendMessage">sendMessage() (client.Client method)</a>
 </li>
-      <li><a href="client.html#client2.Client.serve">serve() (client2.Client method)</a>
+      <li><a href="client.html#client.Client.serve">serve() (client.Client method)</a>
 </li>
       <li><a href="server.html#server.Server.serve_client">serve_client() (server.Server method)</a>
 </li>
@@ -195,6 +282,8 @@
 </li>
       </ul></li>
       <li><a href="server.html#server.Server">Server (class in server)</a>
+</li>
+      <li><a href="crypto.html#crypto.Crypt.set_priv_key">set_priv_key() (crypto.Crypt method)</a>
 </li>
   </ul></td>
 </tr></table>

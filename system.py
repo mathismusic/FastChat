@@ -77,6 +77,7 @@ class System:
                         serverindex INTEGER PRIMARY KEY,
                         numclients INTEGER
                     );""")
+        self.databaseServer.commit()
         curs.close()
 
         # initialize server data and load balancer data

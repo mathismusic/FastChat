@@ -1,7 +1,7 @@
-client module
+crypto module
 =============
 
-.. automodule:: client
+.. automodule:: crypto
    :members:
    :undoc-members:
    :show-inheritance:

@@ -19,6 +19,7 @@
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="load balancer module" href="loadBalancer.html" />
     <link rel="prev" title="server module" href="server.html" /> 
 </head>
 
@@ -42,6 +43,8 @@
 <li class="toctree-l1 current"><a class="reference internal" href="modules.html">q3</a><ul class="current">
 <li class="toctree-l2"><a class="reference internal" href="server.html">server module</a></li>
 <li class="toctree-l2 current"><a class="current reference internal" href="#">client module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="loadBalancer.html">load balancer module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="crypto.html">crypto module</a></li>
 </ul>
 </li>
 </ul>
@@ -71,24 +74,24 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="module-client2">
-<span id="client-module"></span><h1>client module<a class="headerlink" href="#module-client2" title="Permalink to this heading"></a></h1>
+  <section id="module-client">
+<span id="client-module"></span><h1>client module<a class="headerlink" href="#module-client" title="Permalink to this heading"></a></h1>
 <dl class="py class">
-<dt class="sig sig-object py" id="client2.Client">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">client2.</span></span><span class="sig-name descname"><span class="pre">Client</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">database</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#client2.Client" title="Permalink to this definition"></a></dt>
+<dt class="sig sig-object py" id="client.Client">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">client.</span></span><span class="sig-name descname"><span class="pre">Client</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">database</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#client.Client" title="Permalink to this definition"></a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
 <p>This represents the Client/User of the app. Consists of attributes host, port of server and 
 (unique) username of client, along with a ‘receiver’ which is the current receiver. Also contains 
 the socket, database connection and the IO Selector attributes. Contains a Crypt object for cryptography.</p>
 <dl class="py method">
-<dt class="sig sig-object py" id="client2.Client.add_member">
-<span class="sig-name descname"><span class="pre">add_member</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#client2.Client.add_member" title="Permalink to this definition"></a></dt>
+<dt class="sig sig-object py" id="client.Client.add_member">
+<span class="sig-name descname"><span class="pre">add_member</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#client.Client.add_member" title="Permalink to this definition"></a></dt>
 <dd><p>Add a member to the current group, called when the ‘-add’ flag is given.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="client2.Client.add_recipient">
-<span class="sig-name descname"><span class="pre">add_recipient</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name_of_user</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#client2.Client.add_recipient" title="Permalink to this definition"></a></dt>
+<dt class="sig sig-object py" id="client.Client.add_recipient">
+<span class="sig-name descname"><span class="pre">add_recipient</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name_of_user</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#client.Client.add_recipient" title="Permalink to this definition"></a></dt>
 <dd><p>Used to add a member to a group</p>
 <dl class="field-list simple">
 <dt class="field-odd">Param</dt>
@@ -98,8 +101,8 @@ the socket, database connection and the IO Selector attributes. Contains a Crypt
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="client2.Client.create_group">
-<span class="sig-name descname"><span class="pre">create_group</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">groupname</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#client2.Client.create_group" title="Permalink to this definition"></a></dt>
+<dt class="sig sig-object py" id="client.Client.create_group">
+<span class="sig-name descname"><span class="pre">create_group</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">groupname</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#client.Client.create_group" title="Permalink to this definition"></a></dt>
 <dd><p>Create a group. Prompts for number of people and then for usernames.
 Supports multiple admins.</p>
 <dl class="field-list simple">
@@ -110,28 +113,28 @@ Supports multiple admins.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="client2.Client.delete_member">
-<span class="sig-name descname"><span class="pre">delete_member</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#client2.Client.delete_member" title="Permalink to this definition"></a></dt>
+<dt class="sig sig-object py" id="client.Client.delete_member">
+<span class="sig-name descname"><span class="pre">delete_member</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#client.Client.delete_member" title="Permalink to this definition"></a></dt>
 <dd><p>Delete a member from the current group. Is called when the ‘-del’ flag is given.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="client2.Client.display">
-<span class="sig-name descname"><span class="pre">display</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#client2.Client.display" title="Permalink to this definition"></a></dt>
+<dt class="sig sig-object py" id="client.Client.display">
+<span class="sig-name descname"><span class="pre">display</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#client.Client.display" title="Permalink to this definition"></a></dt>
 <dd><p>Prompt</p>
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="client2.Client.get_recipient">
-<span class="sig-name descname"><span class="pre">get_recipient</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#client2.Client.get_recipient" title="Permalink to this definition"></a></dt>
+<dt class="sig sig-object py" id="client.Client.get_recipient">
+<span class="sig-name descname"><span class="pre">get_recipient</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#client.Client.get_recipient" title="Permalink to this definition"></a></dt>
 <dd><p>Get all messages from history from a given contact or group,
 ordered by time, and display after password decryption.
 Supports quickchat if history isn’t demanded.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="client2.Client.login">
-<span class="sig-name descname"><span class="pre">login</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#client2.Client.login" title="Permalink to this definition"></a></dt>
+<dt class="sig sig-object py" id="client.Client.login">
+<span class="sig-name descname"><span class="pre">login</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#client.Client.login" title="Permalink to this definition"></a></dt>
 <dd><p>Asks login details from user, and sends them to server for authentication.
 Enter -1 if new user. Also connects to the personal PostGRESQL server on cloud
 for database handling. Pending messages are fetched and stores in the personal database.
@@ -139,14 +142,14 @@ Generates the RSA tokens for new users.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="client2.Client.receiveMessage">
-<span class="sig-name descname"><span class="pre">receiveMessage</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#client2.Client.receiveMessage" title="Permalink to this definition"></a></dt>
+<dt class="sig sig-object py" id="client.Client.receiveMessage">
+<span class="sig-name descname"><span class="pre">receiveMessage</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tag</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#client.Client.receiveMessage" title="Permalink to this definition"></a></dt>
 <dd><p>Receives message, decrypts it and adds it into the chat history after password encryption.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="client2.Client.sendMessage">
-<span class="sig-name descname"><span class="pre">sendMessage</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#client2.Client.sendMessage" title="Permalink to this definition"></a></dt>
+<dt class="sig sig-object py" id="client.Client.sendMessage">
+<span class="sig-name descname"><span class="pre">sendMessage</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#client.Client.sendMessage" title="Permalink to this definition"></a></dt>
 <dd><p>Sends message after RSA encryption,
 and inserts into sender’s history after password encryption</p>
 <dl class="field-list simple">
@@ -157,8 +160,8 @@ and inserts into sender’s history after password encryption</p>
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="client2.Client.serve">
-<span class="sig-name descname"><span class="pre">serve</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#client2.Client.serve" title="Permalink to this definition"></a></dt>
+<dt class="sig sig-object py" id="client.Client.serve">
+<span class="sig-name descname"><span class="pre">serve</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#client.Client.serve" title="Permalink to this definition"></a></dt>
 <dd><p>Main loop, specify who you would like to talk to, and talk!
 Flags</p>
 <ul>
@@ -192,6 +195,7 @@ Flags</p>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="server.html" class="btn btn-neutral float-left" title="server module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="loadBalancer.html" class="btn btn-neutral float-right" title="load balancer module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

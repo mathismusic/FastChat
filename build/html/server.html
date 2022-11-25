@@ -43,6 +43,8 @@
 <li class="toctree-l1 current"><a class="reference internal" href="modules.html">q3</a><ul class="current">
 <li class="toctree-l2 current"><a class="current reference internal" href="#">server module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="client.html">client module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="loadBalancer.html">load balancer module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="crypto.html">crypto module</a></li>
 </ul>
 </li>
 </ul>
@@ -83,7 +85,7 @@ along with a connection to the PSQL server hosted locally.
 Contains a dictionary of Online users mapping to their MessageHandlers.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="server.Server.accept_connection">
-<span class="sig-name descname"><span class="pre">accept_connection</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">key</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">SelectorKey</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mask</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#server.Server.accept_connection" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">accept_connection</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#server.Server.accept_connection" title="Permalink to this definition"></a></dt>
 <dd><p>Accepts the connection request from an authenticated client.
 Also accepts connections from other servers. Writes pending messages to the client.</p>
 </dd></dl>
@@ -107,7 +109,7 @@ Also accepts connections from other servers. Writes pending messages to the clie
 
 <dl class="py method">
 <dt class="sig sig-object py" id="server.Server.serve_client">
-<span class="sig-name descname"><span class="pre">serve_client</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">key</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">SelectorKey</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mask</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#server.Server.serve_client" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">serve_client</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">readable_sock</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#server.Server.serve_client" title="Permalink to this definition"></a></dt>
 <dd><p>Main serve loop, monitors client connections.</p>
 </dd></dl>
 
