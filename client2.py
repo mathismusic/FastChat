@@ -64,47 +64,50 @@ class Client:
         try:
 
             while True:
-                username = input(BOLD_BLACK + "Username (type -1 to create an account): " + MAGENTA)
-                newuser = (username == '-1')
-                if newuser:
-                    username = input(BOLD_BLACK + "Choose username: " + MAGENTA)
-                password = input(BOLD_BLACK + ("Choose " if newuser else "") + "Password: " + MAGENTA)
-                self.password = password
-                self.username = username
-                print(RESET)
-                
-                priv_key = None
-                pub_key = None
-                if newuser:
-                    self.cryptography.gen_rsa_key()
-                    priv_key = self.cryptography.get_rsa_private_str(password).decode()
-                    pub_key = self.cryptography.get_rsa_public_str().decode()
-                hashed_password = self.cryptography.hash_string(password)
-                login_data = {"Username" : username, "Password" : hashed_password, "Newuser" : newuser, "Private_Key" : priv_key, "Public_Key" : pub_key}
-                # self.s.sendall(json.dumps(login_data).encode())
-                
-                self.handler = ServerMessageHandler(self.s, (self.LB_HOST, self.LB_PORT))
-                self.handler.write(login_data)
-                #print(login_data)
-                
-                data = self.handler.read()
-                #print(data)
-                if (data in ["invalid", ""]): # the "" is just in case the data doesn't make it to the client before the load balancer returns - okay weird bug to fix
-                    print(CYAN + ("This username already exists, please try again." if newuser else "Invalid username or password, please try again.") + RESET)
-                else:
-                    print(data)
-                    self.s.close()
-                    self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                    self.s.connect((data['hostname'], int(data['port'])))
-                    self.handler = ServerMessageHandler(self.s, (data['hostname'], int(data['port'])), "Server")
-                    self.handler.write({"Username": username})
-                    # print(username)
-                    self.s.setblocking(True)
-                    # data = SimpleNamespace(username = "Server", outb=[{"Username": username}],inb=[])
-                    # self.selector.register(fileobj=self.s,events= selectors.EVENT_READ ,data=data)
-                    break
-                
+                try:
+                    username = input(BOLD_BLACK + "Username (type -1 to create an account): " + MAGENTA)
+                    newuser = (username == '-1')
+                    if newuser:
+                        username = input(BOLD_BLACK + "Choose username: " + MAGENTA)
+                    password = input(BOLD_BLACK + ("Choose " if newuser else "") + "Password: " + MAGENTA)
+                    self.password = password
+                    self.username = username
+                    print(RESET)
                     
+                    priv_key = None
+                    pub_key = None
+                    if newuser:
+                        self.cryptography.gen_rsa_key()
+                        priv_key = self.cryptography.get_rsa_private_str(password).decode()
+                        pub_key = self.cryptography.get_rsa_public_str().decode()
+                    hashed_password = self.cryptography.hash_string(password)
+                    login_data = {"Username" : username, "Password" : hashed_password, "Newuser" : newuser, "Private_Key" : priv_key, "Public_Key" : pub_key}
+                    # self.s.sendall(json.dumps(login_data).encode())
+                    
+                    self.handler = ServerMessageHandler(self.s, (self.LB_HOST, self.LB_PORT))
+                    self.handler.write(login_data)
+                    #print(login_data)
+                    
+                    data = self.handler.read()
+                    #print(data)
+                    if (data in ["invalid", ""]): # the "" is just in case the data doesn't make it to the client before the load balancer returns - okay weird bug to fix
+                        print(CYAN + ("This username already exists, please try again." if newuser else "Invalid username or password, please try again.") + RESET)
+                    else:
+                        print(data)
+                        self.s.close()
+                        self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                        self.s.connect((data['hostname'], int(data['port'])))
+                        self.handler = ServerMessageHandler(self.s, (data['hostname'], int(data['port'])), "Server")
+                        self.handler.write({"Username": username})
+                        # print(username)
+                        self.s.setblocking(True)
+                        # data = SimpleNamespace(username = "Server", outb=[{"Username": username}],inb=[])
+                        # self.selector.register(fileobj=self.s,events= selectors.EVENT_READ ,data=data)
+                        break
+                
+                except KeyboardInterrupt as e:  
+                    print(BOLD_BLUE + "Thank you for using FastChat!" + RESET)
+                    sys.exit(1)
             
             # outside the while loop
             # make the local databases for a new user
