@@ -2,6 +2,7 @@ import sys
 import json
 import io
 import struct
+import socket
 
 class Message:
     """
@@ -9,11 +10,11 @@ class Message:
     It is in standard JSON format with attributes Sender, Recipient and Message
     """
     def __init__(self, sender, rec, msg, key, grp_name =  None) -> None:
-        self.sender =  sender
-        self.recipient = rec
-        self.message = msg
+        self.sender: str =  sender
+        self.recipient: str = rec
+        self.message: str = msg
         self.fernet_key = key
-        self.group_name = grp_name
+        self.group_name: str = grp_name
     
     def get_json(self):
         return {"Sender": self.sender, "Recipient": self.recipient, "Message": self.message, "Key": self.fernet_key, "Group_Name": self.group_name }
@@ -24,7 +25,7 @@ class Message:
 class ServerMessageHandler:
     def __init__(self,sock, addr,connectedTo="_default"):
         self.connectedTo = connectedTo
-        self.sock = sock
+        self.sock: socket.socket = sock
         self.addr = addr
         self._recv_buffer = b""
         self._send_buffer = b""
@@ -98,7 +99,7 @@ class ServerMessageHandler:
             "content-length": len(content_bytes),
         }
         jsonheader_bytes = self._json_encode(jsonheader, "utf-8")
-        message_hdr = struct.pack(">H", len(jsonheader_bytes))
+        message_hdr = struct.pack(">Q", len(jsonheader_bytes))
         message = message_hdr + jsonheader_bytes + content_bytes
         return message
 
@@ -134,12 +135,13 @@ class ServerMessageHandler:
                 if self._jsonheader_len is not None:
                     if self.jsonheader is None:
                         self.process_jsonheader()
-                        msg = self.process_request()
-                        if msg != "":
-                            self._jsonheader_len = None
-                            self.jsonheader = None
-                            self.request = None
-                            return msg
+                if self.jsonheader is not None:
+                    msg = self.process_request()
+                    if msg != "":
+                        self._jsonheader_len = None
+                        self.jsonheader = None
+                        self.request = None
+                        return msg
         except Exception as e:
             print(e) # fix outside later
 
@@ -150,8 +152,6 @@ class ServerMessageHandler:
             self.create_response()
 
         self._write()
-        self._jsonheader_len = None
-        self.jsonheader = None
         self.request = None
 
     def close(self):
@@ -173,10 +173,10 @@ class ServerMessageHandler:
             self.sock = None
 
     def process_protoheader(self):
-        hdrlen = 2
+        hdrlen = 8
         if len(self._recv_buffer) >= hdrlen:
             self._jsonheader_len = struct.unpack(
-                ">H", self._recv_buffer[:hdrlen]
+                ">Q", self._recv_buffer[:hdrlen]
             )[0]
             self._recv_buffer = self._recv_buffer[hdrlen:]
 

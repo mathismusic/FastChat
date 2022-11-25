@@ -25,7 +25,7 @@ class Server:
         self.selector = selectors.DefaultSelector()
         self.userDBName = database
         self.onlineUserSockets: dict[str, ServerMessageHandler] = {}
-        self.serverConnections=[None]*len(Globals.Servers)
+        # self.serverConnections=[None]*len(Globals.Servers)
 
         # self.databaseServer = psycopg2.connect(
         #     host=self.HOST,
@@ -81,8 +81,12 @@ class Server:
         
         s = ServerMessageHandler(conn, addr)
         
-        username = s.read()['Username']
-
+        msg = s.read()
+        if type(msg)==dict:
+            username = msg['Username']
+        else:
+            print("Why?")
+            print(msg)
         # msg = conn.recv(1024).decode()
         
         if username[:7]=="Server ":
@@ -178,9 +182,9 @@ class Server:
         try:
             if mask & selectors.EVENT_READ:
                 msg = self.onlineUserSockets[username].read()
-                msg_str = json.dumps(msg)
                 # recv_data = sock.recv(1024)  # Should be ready to read
                 if msg:
+                    msg_str = json.dumps(msg)
                     # data.outb += recv_data
                     curs = self.databaseServer.cursor()
                     curs.execute("SELECT * FROM \"usercreds\" WHERE username=%s",(msg['Recipient'],))

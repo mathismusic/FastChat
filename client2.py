@@ -45,7 +45,8 @@ class Client:
             port="5432"
         )
         self.cryptography = Crypt() 
-        # TODO: add fields to remember username and password to auto-login next time. (use a local client-specific database/file to store local client stuff)
+        
+        #  TODO: add fields to remember username and password to auto-login next time. (use a local client-specific database/file to store local client stuff)
         
     def login(self) -> None:
         """Asks login details from user, and sends them to server for authentication.
@@ -257,7 +258,7 @@ class Client:
         
         if data.sender in self.receivers:
             sys.stdout.write(MAGENTA + ">>> " + BLUE + data.sender + ": " + GREEN + data.message + '\n' + RESET)
-        sys.stdout.flush()
+            sys.stdout.flush()
 
     def serve(self):
         """Main serve loop, specify who you would like to talk to, and -cd to change the recipient."""
