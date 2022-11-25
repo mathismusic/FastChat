@@ -1,4 +1,5 @@
 import socket
+import select
 import json
 import sys
 import ast
@@ -20,7 +21,7 @@ class LoadBalancer:
         self.servers = list(servers)
         self.userDBName = database
         self.algorithm = algorithm
-        self.selector = selectors.DefaultSelector()
+        self.events = []
         self.handler = None
         self.databaseServer = psycopg2.connect(
             database=self.userDBName,
@@ -43,66 +44,51 @@ class LoadBalancer:
         
         conn, addr = self.sock.accept()  # Should be ready to read
         conn.setblocking(True)
+        self.events.append(conn)
         self.handler = ServerMessageHandler(conn, addr)
         # print('0')
+        
+    def check_and_allocate_client(self, conn):
         msg = self.handler.read()
-        print(type(msg))
-        if type(msg) == str: print("|" + msg + "|", msg is None, msg == "")
-        user_credentials = msg # why we sending to lsock
-        # print('a')
+        if msg is None:
+            self.events.remove(conn)
+            print("Connection lost")
+            return
+        # print(type(msg))
+        # if type(msg) == str: print("|" + msg + "|", msg is None, msg == "")
+        user_credentials = msg
         username = user_credentials['Username']
-        # print('b')
         password = user_credentials['Password']
-        # print('c')
         user_priv_key = user_credentials['Private_Key']
-        # print('d')
         user_pub_key = user_credentials['Public_Key']
-        # print('e')
         newuser = user_credentials['Newuser']
         
         self.handler.connectedTo=username
 
         curs = self.databaseServer.cursor()
-        # print('f')
         curs.execute("SELECT * FROM \"usercreds\" WHERE username=%s",(username,))
-        # print('g')
         data = curs.fetchall()
-        # print('h')
         if newuser:
             if len(data) > 0:
-                # print('i')
                 self.handler.write("invalid")
-                # print('j')
-                # print("yes1")
                 return
             else:
-                # print('k')
                 curs.execute("INSERT INTO \"usercreds\" (username,userpwd,userprivkey, userpubkey) VALUES (%s, %s, %s, %s)",(username,password, user_priv_key, user_pub_key)) # add user.
                 self.databaseServer.commit()
-                # print('l')
         elif (len(data) == 0 or password != data[0][2]):
             # print(data[0][2])
-            # print('m')
             self.handler.write("invalid")
-            # print('n')
-            # conn.close()
-            # print("yes2")
             return
 
         # connect the user to server
-        # print('o')
         server = self.choose_server()
-        # print('p')
         self.handler.write({"hostname": server[0], "port": server[1]})
-        # print('q')
-        # conn.sendall(json.dumps({"hostname": server[0], "port": server[1]}).encode())
         curs.execute("UPDATE \"usercreds\" SET connectedto=%s WHERE username=%s",(self.servers.index(server),username))
         self.databaseServer.commit()
         curs.close()
-        # print('r')
         conn.close()
+        self.events.pop()
         return
-        # server.accept_client(conn, addr, username, password)
 
     def choose_server(self) -> list[str]:
         self.se = (self.se + 1) % len(globals.Globals.Servers)
@@ -117,22 +103,19 @@ class LoadBalancer:
     
     def run(self):
         # print('s')
-        self.selector.register(fileobj=self.sock, events=selectors.EVENT_READ, data=None)
+        self.events.append(self.sock)
         # print('t')
         try:
             while True:
-                events = self.selector.select(timeout=None)
-                # print(events)
-                # print('x')
-                for key, mask in events:
-                    print(key.data is None, mask)
-                    self.accept_client()
-                        
+                readable_events, _, _ = select.select(self.events,[],[])
+                for readable_event in readable_events:
+                    if readable_event == self.sock:
+                        self.accept_client()
+                    else:
+                        self.check_and_allocate_client(readable_event)         
         except KeyboardInterrupt:
             print("Caught keyboard interrupt, exiting")
         
-        self.selector.close()
-
 if __name__ == "__main__":
     # lb = LoadBalancer(json.loads(sys.argv[1]), sys.argv[2], sys.argv[3], sys.argv[4], sys.argv[5])
     args = str([[[globals.Globals.default_host, "61001"], [globals.Globals.default_host, "61002"], [globals.Globals.default_host, "61003"], [globals.Globals.default_host, "61004"], [globals.Globals.default_host, "61005"]], globals.Globals.default_host, "61051", "fastchat_users", "least-load"])

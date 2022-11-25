@@ -85,5 +85,5 @@ class System:
         #     threads[-1].start()
 
 if __name__ == '__main__':
-    n = 2
+    n = 1
     System(n)

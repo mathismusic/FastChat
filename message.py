@@ -108,7 +108,7 @@ class ServerMessageHandler:
         jsonheader_bytes = self._json_encode(jsonheader, "utf-8")
         message_hdr = struct.pack(">h", len(jsonheader_bytes))
         message = message_hdr + jsonheader_bytes + content_bytes
-        print(message)
+        # print(message)
         return message
 
     def _create_response_json_content(self):
@@ -162,7 +162,6 @@ class ServerMessageHandler:
             while True:
                 self._read()
                 if self._recv_buffer == b"":
-                    print("NULL")
                     return ""
 
                 if self._jsonheader_len is None:
@@ -273,5 +272,4 @@ class ServerMessageHandler:
     def create_response(self):
         response = self._create_response_json_content()
         message = self._create_message(response["content_bytes"], response["content_type"], response["content_encoding"])
-        print(message)
         self._send_buffer += message
