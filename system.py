@@ -8,7 +8,13 @@ import subprocess
 from globals import Globals
 
 class System:
+    """The overall server and load balancer initializer class. Creates the relevant databases."""
     def __init__(self, n: int) -> None:
+        """
+        Constructor, sets server and lb (load balancer) addresses.
+        Creates the fastchat_users database with the usercreds table, groups table and pending
+        message table with the required schema. Runs the shell script start_lb and start_server to run the programs automatically.
+        """
         self.HOST = Globals.default_host # where this is running.
         self.SERVER_HOSTS = [Globals.default_host]*n
         self.SERVER_PORTS = [str(i) for i in range(61001, 61001 + n)]
