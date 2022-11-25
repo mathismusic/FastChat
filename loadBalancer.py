@@ -37,11 +37,12 @@ class LoadBalancer:
         Creates a new account on corresponding request. The accepted client is connected to a chosen server"""
         
         conn, addr = self.sock.accept()  # Should be ready to read
+        conn.setblocking(False)
         self.handler = ServerMessageHandler(conn, addr)
-        print('0')
+        # print('0')
         msg = self.handler.read()
-        print(msg)
-        user_credentials = msg
+        print(type(msg))
+        user_credentials = msg # why we sending to lsock
         # print('a')
         username = user_credentials['Username']
         # print('b')
@@ -74,7 +75,7 @@ class LoadBalancer:
                 self.databaseServer.commit()
                 # print('l')
         elif (len(data) == 0 or password != data[0][2]):
-            print(data[0][2])
+            # print(data[0][2])
             # print('m')
             self.handler.write("invalid")
             # print('n')
@@ -93,6 +94,7 @@ class LoadBalancer:
         self.databaseServer.commit()
         curs.close()
         # print('r')
+        conn.close()
         return
         # server.accept_client(conn, addr, username, password)
 
@@ -105,15 +107,15 @@ class LoadBalancer:
         return self.servers[0]
     
     def run(self):
-        # lsock.setblocking(False)
-        print('s')
+        self.sock.setblocking(False)
+        # print('s')
         self.selector.register(fileobj=self.sock, events=selectors.EVENT_READ, data=None)
-        print('t')
+        # print('t')
         try:
             while True:
                 events = self.selector.select(timeout=None)
-                print(events)
-                print('x')
+                # print(events)
+                # print('x')
                 for key, mask in events:
                     self.accept_client()
                         

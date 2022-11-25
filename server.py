@@ -71,7 +71,7 @@ class Server:
         # # isonline INTEGER DEFAULT 1
         self.sock.bind((self.HOST, self.PORT))
         self.sock.listen()
-        print(f"Server #{self.index} is operational!")
+        print(f"Server #{int(self.index) + 1} is operational!")
         print(f"Listening on {(self.HOST, self.PORT)}")
 
     def accept_connection(self):
@@ -130,6 +130,8 @@ class Server:
 #     # curs.close()
     
         self.onlineUserSockets[username] = s # change to bool = True
+        # print(username + " added!")
+        # print(list(self.onlineUserSockets.keys()))
 #     conn.sendall('valid'.encode())
     
         conn.setblocking(False)
@@ -189,26 +191,26 @@ class Server:
                     curs = self.databaseServer.cursor()
                     curs.execute("SELECT * FROM \"usercreds\" WHERE username=%s",(msg['Recipient'],))
                     userentry = curs.fetchall()
-                    if len(userentry)==0:
-                        self.onlineUserSockets[username].write("invalid_recipient")
+                    # if len(userentry)==0:
+                    #     self.onlineUserSockets[username].write("invalid_recipient")
                         # sock.sendall('invalid_recipient'.encode())
-                        return
-                    elif msg['Recipient'] not in self.onlineUserSockets:
+                        # return
+                    if msg['Recipient'] not in self.onlineUserSockets:
                         if userentry[0][5]==-1:
                             curs.execute("INSERT INTO pending (sender,receiver,jsonmsg) VALUES (%s,%s,%s) ",(msg['Sender'],msg['Recipient'],msg_str))
                             self.databaseServer.commit()
                         else:
-                            self.onlineUserSockets["Server " + str(userentry[0][5])].write(msg_str)
+                            self.onlineUserSockets["Server " + str(userentry[0][5])].write(msg)
                             # self.serverConnections[userentry[0][5]].sendall(recv_data)
                             
                     else: # user is online and in the same server
-                        self.onlineUserSockets[msg['Recipient']].write(msg_str)
+                        self.onlineUserSockets[msg['Recipient']].write(msg)
                         # self.onlineUserSockets[msg['Recipient']].sendall(recv_data)
                     
                     curs.close()
                     # give acknowledgement of received to the sender
-                    if username[7:] != 'Server ': 
-                        self.onlineUserSockets[username].write("received")
+                    # if username[7:] != 'Server ': 
+                    #     self.onlineUserSockets[username].write("received")
                     # print(f"Client {data.username} to {msg['Recipient']}:", msg['Message'])
                 
                 # else the read returned nothing - the client did not try to send anything
@@ -241,7 +243,7 @@ class Server:
             return
 
     def run(self):
-        # lsock.setblocking(False)
+        self.sock.setblocking(False)
         self.selector.register(fileobj=self.sock, events=selectors.EVENT_READ, data=None)
 
         try:

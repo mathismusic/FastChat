@@ -20,7 +20,7 @@ class Message:
         return {"Sender": self.sender, "Recipient": self.recipient, "Message": self.message, "Key": self.fernet_key, "Group_Name": self.group_name }
 
     def __repr__(self) -> str:
-        return json.dumps({"Sender": self.sender, "Recipient": self.recipient, "Message": self.message, "Key": self.fernet_key, "Group_Name": self.group_name })
+        return json.dumps({"Sender": self.sender, "Recipient": self.recipient, "Message": self.message, "Key": self.fernet_key, "Group_Name": self.group_name }, default=str)
 
 class ServerMessageHandler:
     def __init__(self,sock, addr,connectedTo="_default"):
@@ -57,7 +57,7 @@ class ServerMessageHandler:
         except Exception as e:
             print(e)
         else:
-            if data:
+            if data != b'':
                 self._recv_buffer += data
             else:
                 raise RuntimeError("Peer closed.")
@@ -79,7 +79,7 @@ class ServerMessageHandler:
                     pass
 
     def _json_encode(self, obj, encoding):
-        return json.dumps(obj, ensure_ascii=False).encode(encoding)
+        return json.dumps(obj, ensure_ascii=False, default=str).encode(encoding)
 
     def _json_decode(self, json_bytes, encoding):
         tiow = io.TextIOWrapper(

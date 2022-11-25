@@ -81,7 +81,7 @@ class Client:
                 #print(data)
                 if (data in ["invalid", ""]): # the "" is just in case the data doesn't make it to the client before the load balancer returns - okay weird bug to fix
                     print(CYAN + ("This username already exists, please try again." if newuser else "Invalid username or password, please try again.") + RESET)
-                else: 
+                else:
                     print(data)
                     self.s.close()
                     self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
