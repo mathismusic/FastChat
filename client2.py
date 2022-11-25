@@ -451,7 +451,7 @@ class Client:
         curs = self.sqlConnection.cursor()
         curs.execute("SELECT chat_id FROM chats WHERE receiver=%s",(rvr,))
         chat_id = curs.fetchall()[0][0]
-        curs.execute(f"SELECT chat_id, sender_name, msg, fernetkey,t FROM history WHERE chat_id={chat_id} ORDER BY t DESC LIMIT 20")
+        curs.execute("SELECT chat_id, sender_name, msg, fernetkey,t FROM history WHERE chat_id=%s ORDER BY t DESC LIMIT 20", (chat_id,))
         messages = curs.fetchall()
         for message in reversed(messages):
             msg_obj = Message(None, None, message[2], message[3], None)

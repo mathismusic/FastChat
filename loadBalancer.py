@@ -4,7 +4,9 @@ import sys
 import ast
 import psycopg2
 from server import Server
-from globals import Globals
+import globals
+import importlib
+importlib.reload(globals)
 import selectors
 from message import *
 
@@ -30,6 +32,8 @@ class LoadBalancer:
         self.sock.bind((self.HOST, self.PORT))
         self.sock.listen()
         print(f"Listening on {(self.HOST, self.PORT)}")
+        self.sock.setblocking(True)
+        self.se = 0
     
     # the load balancer does the work of accepting clients when they try to login
     def accept_client(self):
@@ -37,11 +41,12 @@ class LoadBalancer:
         Creates a new account on corresponding request. The accepted client is connected to a chosen server"""
         
         conn, addr = self.sock.accept()  # Should be ready to read
-        conn.setblocking(False)
+        conn.setblocking(True)
         self.handler = ServerMessageHandler(conn, addr)
         # print('0')
         msg = self.handler.read()
         print(type(msg))
+        if type(msg) == str: print("|" + msg + "|", msg is None, msg == "")
         user_credentials = msg # why we sending to lsock
         # print('a')
         username = user_credentials['Username']
@@ -99,15 +104,17 @@ class LoadBalancer:
         # server.accept_client(conn, addr, username, password)
 
     def choose_server(self) -> list[str]:
+        self.se = (self.se + 1) % len(globals.Globals.Servers)
+        return [globals.Globals.Servers[self.se][0], globals.Globals.Servers[self.se][1]]
         ans = 0
-        for i in range(len(Globals.Servers)):
-            if Globals.Servers[i][2] < Globals.Servers[ans][2]:
+        print(globals.Globals.Servers)
+        for i in range(len(globals.Globals.Servers)):
+            if globals.Globals.Servers[i][2] < globals.Globals.Servers[ans][2]:
                 ans = i
-        return [Globals.Servers[ans][0], Globals.Servers[ans][1]]
+        return [globals.Globals.Servers[ans][0], globals.Globals.Servers[ans][1]]
         return self.servers[0]
     
     def run(self):
-        self.sock.setblocking(False)
         # print('s')
         self.selector.register(fileobj=self.sock, events=selectors.EVENT_READ, data=None)
         # print('t')
@@ -117,6 +124,7 @@ class LoadBalancer:
                 # print(events)
                 # print('x')
                 for key, mask in events:
+                    print(key.data is None, mask)
                     self.accept_client()
                         
         except KeyboardInterrupt:
@@ -126,7 +134,7 @@ class LoadBalancer:
 
 if __name__ == "__main__":
     # lb = LoadBalancer(json.loads(sys.argv[1]), sys.argv[2], sys.argv[3], sys.argv[4], sys.argv[5])
-    args = str([[[Globals.default_host, "61001"], [Globals.default_host, "61002"], [Globals.default_host, "61003"], [Globals.default_host, "61004"], [Globals.default_host, "61005"]], Globals.default_host, "61051", "fastchat_users", "least-load"])
+    args = str([[[globals.Globals.default_host, "61001"], [globals.Globals.default_host, "61002"], [globals.Globals.default_host, "61003"], [globals.Globals.default_host, "61004"], [globals.Globals.default_host, "61005"]], globals.Globals.default_host, "61051", "fastchat_users", "least-load"])
     # args = input()
     # print("||" + repr(args))
     # print(ast.literal_eval(args))
