@@ -81,21 +81,20 @@ class Server:
         
         s = ServerMessageHandler(conn, addr)
         
-        msg = s.read()
+        username = s.read()['Username']
+
         # msg = conn.recv(1024).decode()
         
-        if msg[:7]=="Server ":
-            s.connectedTo = msg
+        if username[:7]=="Server ":
+            s.connectedTo = username
             # serverindex = int(msg[7:])
-            self.onlineUserSockets[msg] = s
+            self.onlineUserSockets[username] = s
             conn.setblocking(False)
-            data = SimpleNamespace(username=msg)
+            data = SimpleNamespace(username=username)
             events = selectors.EVENT_READ | selectors.EVENT_WRITE
             self.selector.register(conn,events,data=data)
             return
             
-        
-        username = msg['Username']
 #     password = user_credentials['Password']
 #     newuser = user_credentials['Newuser']
         
@@ -121,7 +120,7 @@ class Server:
 
         print("Accepted connection from " + RED + str(addr) + RESET + " with username "  + GREEN + username + RESET)
         self.numClients += 1
-        Globals.Servers[self.index] += 1    
+        Globals.Servers[int(self.index)][2] += 1    
 #     # curs = self.databaseServer.cursor()
 #     # curs.execute("INSERT INTO \"usercreds\" (username, userpwd) VALUES (%s,%s)",(username,password))
 #     # curs.close()
@@ -178,11 +177,11 @@ class Server:
         username = data.username
         try:
             if mask & selectors.EVENT_READ:
-                msg_str = self.onlineUserSockets[username].read()
+                msg = self.onlineUserSockets[username].read()
+                msg_str = json.dumps(msg)
                 # recv_data = sock.recv(1024)  # Should be ready to read
-                if msg_str:
+                if msg:
                     # data.outb += recv_data
-                    msg = json.loads(msg_str)
                     curs = self.databaseServer.cursor()
                     curs.execute("SELECT * FROM \"usercreds\" WHERE username=%s",(msg['Recipient'],))
                     userentry = curs.fetchall()
@@ -216,8 +215,10 @@ class Server:
                         self.serverConnections[int(username[7:])]=None
                     else:
                         self.numClients -= 1
-                        Globals.Servers[self.index] -= 1
+                        Globals.Servers[int(self.index)][2] -= 1
                         self.onlineUserSockets.pop(username)
+                        curs = self.databaseServer.cursor()
+                        curs.execute("""UPDATE usercreds SET connectedto = -1 WHERE username=%s""", (username,))
                     sock.close()
             # if mask & EVENT_WRITE:
             #     if data.outb:
@@ -228,6 +229,11 @@ class Server:
             #         data.outb = data.outb[sent:]
         except BrokenPipeError:
             print(f"Client " + GREEN + username + RESET + " closed the connection.")
+            self.numClients -= 1
+            Globals.Servers[int(self.index)][2] -= 1
+            self.onlineUserSockets.pop(username)
+            curs = self.databaseServer.cursor()
+            curs.execute("""UPDATE usercreds SET connectedto = -1 WHERE username=%s""", (username,))
             return
 
     def run(self):
@@ -253,7 +259,7 @@ class Server:
             temp_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             temp_sock.connect((Globals.Servers[i][0],int(Globals.Servers[i][1])))
             self.onlineUserSockets[s] = ServerMessageHandler(temp_sock, (Globals.Servers[i][0],int(Globals.Servers[i][1])),s)
-            self.onlineUserSockets[s].write(s)
+            self.onlineUserSockets[s].write({"Username": s})
             data = SimpleNamespace(username="Server "+self.index)
             events = selectors.EVENT_READ | selectors.EVENT_WRITE
             self.selector.register(self.onlineUserSockets[s],events,data=data)
