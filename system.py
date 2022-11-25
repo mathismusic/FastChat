@@ -73,6 +73,10 @@ class System:
                     );""")
         curs.execute("ALTER TABLE pending ALTER COLUMN sendtime SET DEFAULT now();")
         self.databaseServer.commit()
+        curs.execute("""CREATE TABLE IF NOT EXISTS serverload (
+                        serverindex INTEGER PRIMARY KEY,
+                        numclients INTEGER
+                    );""")
         curs.close()
 
         # initialize server data and load balancer data
@@ -80,6 +84,10 @@ class System:
         for i in range(n):
             # pass
             subprocess.call(['./start_server.sh', self.SERVER_HOSTS[i], self.SERVER_PORTS[i], self.userDBName, str(i)])
+            curs = self.databaseServer.cursor()
+            curs.execute("""INSERT INTO serverload (serverindex, numclients) VALUES (%s,%s) """, (i, 0))
+            self.databaseServer.commit()
+            curs.close()
         # print("hello worlddd")
         self.loadBalancer = [self.servers, self.LB_HOST, self.LB_PORT, self.userDBName, 'least-load']
         # print(json.dumps(self.loadBalancer))

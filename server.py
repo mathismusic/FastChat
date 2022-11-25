@@ -72,6 +72,9 @@ class Server:
 
                 print("Accepted connection from " + RED + str(addr) + RESET + " with username "  + GREEN + username + RESET)
                 self.numClients += 1
+                curs = self.databaseServer.cursor()
+                curs.execute("""UPDATE serverload SET numclients=%s WHERE serverindex=%s""",(self.numClients, self.index))
+                curs.close()
                 globals.Globals.Servers[int(self.index)][2] += 1
                 print(globals.Globals.Servers[int(self.index)])
                 self.onlineUserSockets[username] = s
@@ -91,6 +94,9 @@ class Server:
         except Exception:
             print(f"Client " + GREEN + username + RESET + " closed the connection.")
             self.numClients -= 1
+            curs = self.databaseServer.cursor()
+            curs.execute("""UPDATE serverload SET numclients=%s WHERE serverindex=%s""",(self.numClients, self.index))
+            curs.close()
             globals.Globals.Servers[int(self.index)][2] -= 1
             self.onlineUserSockets.pop(username)
             curs = self.databaseServer.cursor()
@@ -149,6 +155,9 @@ class Server:
                     self.serverConnections[int(username[7:])]=None
                 else:
                     self.numClients -= 1
+                    curs = self.databaseServer.cursor()
+                    curs.execute("""UPDATE serverload SET numclients=%s WHERE serverindex=%s""",(self.numClients, self.index))
+                    curs.close()
                     globals.Globals.Servers[int(self.index)][2] -= 1
                     self.onlineUserSockets.pop(username)
                     curs = self.databaseServer.cursor()
@@ -159,6 +168,9 @@ class Server:
             print(f"Client " + GREEN + username + RESET + " closed the connection.")
             self.events.remove(readable_sock)
             self.numClients -= 1
+            curs = self.databaseServer.cursor()
+            curs.execute("""UPDATE serverload SET numclients=%s WHERE serverindex=%s""",(self.numClients, self.index))
+            curs.close()
             globals.Globals.Servers[int(self.index)][2] -= 1
             self.onlineUserSockets.pop(username)
             curs = self.databaseServer.cursor()
