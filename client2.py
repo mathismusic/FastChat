@@ -59,9 +59,10 @@ class Client:
         Generates the RSA tokens for new users."""
          # go to port self.PORT on machine self.HOST
          
+        self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.s.connect((self.LB_HOST, self.LB_PORT)) 
         try:
-            
-            self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
             while True:
                 username = input(BOLD_BLACK + "Username (type -1 to create an account): " + MAGENTA)
                 newuser = (username == '-1')
@@ -81,7 +82,7 @@ class Client:
                 hashed_password = self.cryptography.hash_string(password)
                 login_data = {"Username" : username, "Password" : hashed_password, "Newuser" : newuser, "Private_Key" : priv_key, "Public_Key" : pub_key}
                 # self.s.sendall(json.dumps(login_data).encode())
-                self.s.connect((self.LB_HOST, self.LB_PORT)) 
+                
                 self.handler = ServerMessageHandler(self.s, (self.LB_HOST, self.LB_PORT))
                 self.handler.write(login_data)
                 #print(login_data)
@@ -102,7 +103,7 @@ class Client:
                     # data = SimpleNamespace(username = "Server", outb=[{"Username": username}],inb=[])
                     # self.selector.register(fileobj=self.s,events= selectors.EVENT_READ ,data=data)
                     break
-                self.s.close()
+                
                     
             
             # outside the while loop
@@ -177,7 +178,10 @@ class Client:
             for i in range(int(size)):
                 # pendingmsg = self.s.recv(1024).decode()
                 # msg = json.loads(pendingmsg)
-                d = self.handler.read()
+                if self.handler._recv_buffer:
+                    d = self.handler.read(True)
+                else:
+                    d = self.handler.read(False)
                 print(d)
                 msg = json.loads(d[1])
                 # decrypt the message, then encrypt with password to store in history
@@ -235,13 +239,12 @@ class Client:
             self.sqlConnection.commit()
             curs.close()
 
-    def receiveMessage(self):
+    def receiveMessage(self, tag=False):
         """
         Receives message, decrypts it and adds it into the chat history after password encryption. 
         """
-        msg = self.handler.read()
-        if msg == "received":
-            return
+        msg = self.handler.read(tag)
+        # print(msg)
         data = {}
         if msg in [None, ""]:
             print(YELLOW + "msg: " + RESET + "|" + str(msg) + "|")
@@ -271,9 +274,12 @@ class Client:
         if data.sender in self.receivers:
             sys.stdout.write(MAGENTA + ">>> " + BLUE + data.sender + ": " + GREEN + data.message + '\n' + RESET)
             sys.stdout.flush()
-            
-        self.display()
-
+            self.display()
+        
+        if self.handler._recv_buffer:
+            self.receiveMessage(tag=True)
+        
+        
     def serve(self):
         """Main loop, specify who you would like to talk to, and talk!
         Flags
@@ -293,8 +299,10 @@ class Client:
         try:
             while True:
                 readable_events, _, _ = select.select(self.events, [], [])
+                # print(self.receivers)
                 for readable_event in readable_events:
                     if readable_event == self.s:
+                        print()
                         self.receiveMessage()
                     else:
                         input = sys.stdin.readline()[:-1]
@@ -429,7 +437,7 @@ class Client:
                     self.create_group(rvr)
                     self.isAdmin = True
                 else:
-                    print(BOLD_YELLOW + "This group name already exist. Try another" + RESET)
+                    print(BOLD_YELLOW + "This group name already exists. Try another" + RESET)
                     continue; 
                 
             else:
@@ -483,7 +491,7 @@ class Client:
             msg_obj = Message(None, None, message[2], message[3], None)
             msg_obj = self.cryptography.password_decrypt(self.password, msg_obj)
             to_print = msg_obj.message
-            print(MAGENTA + ">>> " + ("You: " if message[1] == self.username else BLUE + message[1]) + GREEN + to_print) # color differently based on user or receiver sent
+            print(MAGENTA + ">>> " + ("You: " if message[1] == self.username else BLUE + message[1] + ": ") + GREEN + to_print) # color differently based on user or receiver sent
         print(RESET)
         curs.close()
 

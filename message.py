@@ -157,8 +157,22 @@ class ServerMessageHandler:
     #             return msg
         
 
-    def read(self):
+    def read(self,tag=False):
         try:
+            if tag and self._recv_buffer:
+                if self._jsonheader_len is None:
+                    self.process_protoheader()
+
+                if self._jsonheader_len is not None:
+                    if self.jsonheader is None:
+                        self.process_jsonheader()
+                if self.jsonheader is not None:
+                    msg = self.process_request()
+                    if msg not in ["",None]:
+                        self._jsonheader_len = None
+                        self.jsonheader = None
+                        self.request = None
+                        return msg
             while True:
                 self._read()
                 if self._recv_buffer == b"":
