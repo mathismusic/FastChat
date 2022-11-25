@@ -55,7 +55,7 @@ class Client:
         try:
             while True:
                 self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                self.s.connect((self.LB_HOST, self.LB_PORT)) 
+                
                 username = input(BOLD_BLACK + "Username (type -1 to create an account): " + MAGENTA)
                 newuser = (username == '-1')
                 if newuser:
@@ -73,10 +73,10 @@ class Client:
                 hashed_password = self.cryptography.hash_string(password)
                 login_data = {"Username" : username, "Password" : hashed_password, "Newuser" : newuser, "Private_Key" : priv_key, "Public_Key" : pub_key}
                 # self.s.sendall(json.dumps(login_data).encode())
+                self.s.connect((self.LB_HOST, self.LB_PORT)) 
                 self.handler = ServerMessageHandler(self.s, (self.LB_HOST, self.LB_PORT))
-                print("hello1")
                 self.handler.write(login_data)
-                print("hello2")
+                #print(login_data)
                 data = self.handler.read()
                 #print(data)
                 if (data in ["invalid", ""]): # the "" is just in case the data doesn't make it to the client before the load balancer returns - okay weird bug to fix
@@ -88,7 +88,9 @@ class Client:
                     self.s.connect((data['hostname'], int(data['port'])))
                     self.handler = ServerMessageHandler(self.s, (data['hostname'], int(data['port'])))
                     self.handler.write({"Username": username})
-                    self.selector.register(fileobj=self.s,events= selectors.EVENT_READ | selectors.EVENT_WRITE ,data="Server")
+                    print(username)
+                    self.s.setblocking(False)
+                    self.selector.register(fileobj=self.s,events= selectors.EVENT_READ ,data="Server")
                     break
                 self.s.close()
                 
@@ -203,7 +205,7 @@ class Client:
         
         for receiver in self.receivers:
             to_send = Message(self.username, receiver, input, None)
-            print(self.receivers[receiver])
+            #print(self.receivers[receiver])
             self.cryptography.get_rsa_encrypt_key((self.receivers[receiver]).encode())
             encrypted_to_send = self.cryptography.main_encrypt(to_send)
             to_send.fernet_key = self.cryptography.fernet_encrypt_key.decode()
@@ -233,14 +235,15 @@ class Client:
             return
         data = {}
         if msg in [None, ""]:
-            print(YELLOW + "msg: " + RESET + "|" + msg + "|")
+            print(YELLOW + "msg: " + RESET + "|" + str(msg) + "|")
             return
 
-        print(YELLOW + "msg: " + RESET + "|" + msg + "|")
+        #print(YELLOW + "msg: " + RESET + "|" + str(msg) + "|")
         data = msg   
+        
         data = self.cryptography.main_decrypt(Message(data['Sender'], data['Recipient'], data['Message'], data['Key'], data['Group_Name'])) 
         to_store = self.cryptography.password_encrypt(self.password, data)
-        print(YELLOW + "data: " + RESET + "|" + str(data) + "|\n\n")
+        #print(YELLOW + "data: " + RESET + "|" + str(data) + "|\n\n")
         
         curs = self.sqlConnection.cursor()
 
@@ -259,6 +262,8 @@ class Client:
         if data.sender in self.receivers:
             sys.stdout.write(MAGENTA + ">>> " + BLUE + data.sender + ": " + GREEN + data.message + '\n' + RESET)
             sys.stdout.flush()
+            
+        self.display()
 
     def serve(self):
         """Main serve loop, specify who you would like to talk to, and -cd to change the recipient."""
@@ -272,9 +277,7 @@ class Client:
                 events = self.selector.select(timeout=None)
                 for key, mask in events:
                     if key.data == "Server" and mask & selectors.EVENT_READ:
-                        print()
                         self.receiveMessage()
-                        self.display()
                     else:
                         input = sys.stdin.readline()[:-1]
                         
