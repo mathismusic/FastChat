@@ -129,13 +129,40 @@ class ServerMessageHandler:
     #     }
     #     return response        
         
+        
+    # def rd(self):
+    #     if self._recv_buffer == b"":
+    #         hdrlen = 2;
+    #         hdr = self.sock.recv(hdrlen)
+    #         self._jsonheader_len = struct.unpack(
+    #             ">h", hdr
+    #         )[0]
+    #         self.jsonheader = self._json_decode(
+    #             self.sock.recv(self._jsonheader_len), "utf-8"
+    #         )
+    #         for reqhdr in (
+    #             "byteorder",
+    #             "content-length",
+    #             "content-type",
+    #             "content-encoding",
+    #         ):
+    #             if reqhdr not in self.jsonheader:
+    #                 raise ValueError(f"Missing required header '{reqhdr}'.")
+            
+    #         content_len = self.jsonheader["content-length"]
+            
+    #         if self.jsonheader["content-type"] == "text/json":
+    #             encoding = self.jsonheader["content-encoding"]
+    #             msg = self._json_decode(content_len, encoding)
+    #             return msg
+        
 
     def read(self):
         try:
             while True:
                 self._read()
                 if self._recv_buffer == b"":
-                    print("Something")
+                    print("NULL")
                     return ""
 
                 if self._jsonheader_len is None:
