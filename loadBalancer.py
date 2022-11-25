@@ -13,7 +13,21 @@ from message import *
 
 # load balancer server
 class LoadBalancer:
+    """The Load Balancer is a special type of Server, which handles authentication, account creation,
+    and server load balancing. It implements a round robin distribution of the client load. An
+    alternate algorithm based on least-load identification can be given as a flag."""
     def __init__(self, servers: list[list[str]], host: str, port: str, database: str, algorithm='least-load') -> None:
+        """
+        Constructor
+        
+        :param: servers: Contains the addresses of each of the main servers as a list
+        :type: servers: list[list[int]]
+        :param: host: hostname
+        :param: port: port number
+        :param: database: Databse name
+        :param: algorithm: The load balancing method
+        :type: algorithm: str
+        """
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.sock.setsockopt(socket.SOL_SOCKET,socket.SO_REUSEADDR,1)
         self.HOST = host  # The load balancer's hostname or IP address
@@ -40,7 +54,9 @@ class LoadBalancer:
     # the load balancer does the work of accepting clients when they try to login
     def accept_client(self):
         """Accepts the connection request from a client, after correct authentication.
-        Creates a new account on corresponding request. The accepted client is connected to a chosen server"""
+        Creates a new account on corresponding request.
+        The accepted client is connected to a chosen server, and any pending messages since the
+        client's last session are sent"""
         
         conn, addr = self.sock.accept()  # Should be ready to read
         conn.setblocking(True)
@@ -91,6 +107,7 @@ class LoadBalancer:
         return
 
     def choose_server(self) -> list[str]:
+        """Decides which server to send the client to."""
         self.se = (self.se + 1) % len(globals.Globals.Servers)
         return [globals.Globals.Servers[self.se][0], globals.Globals.Servers[self.se][1]]
         ans = 0
@@ -102,6 +119,7 @@ class LoadBalancer:
         return self.servers[0]
     
     def run(self):
+        """Main callback"""
         # print('s')
         self.events.append(self.sock)
         # print('t')
