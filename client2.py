@@ -182,7 +182,6 @@ class Client:
                     d = self.handler.read(True)
                 else:
                     d = self.handler.read(False)
-                print(d)
                 msg = json.loads(d[1])
                 # decrypt the message, then encrypt with password to store in history
                 msg_obj = Message(msg['Sender'], msg['Recipient'], msg['Message'], msg['Key'], msg['Group_Name'])
@@ -274,11 +273,9 @@ class Client:
         if data.sender in self.receivers:
             sys.stdout.write(MAGENTA + ">>> " + BLUE + data.sender + ": " + GREEN + data.message + '\n' + RESET)
             sys.stdout.flush()
-            self.display()
         
         if self.handler._recv_buffer:
             self.receiveMessage(tag=True)
-        
         
     def serve(self):
         """Main loop, specify who you would like to talk to, and talk!
@@ -304,6 +301,7 @@ class Client:
                     if readable_event == self.s:
                         print()
                         self.receiveMessage()
+                        self.display()
                     else:
                         input = sys.stdin.readline()[:-1]
                         
@@ -492,7 +490,8 @@ class Client:
             msg_obj = self.cryptography.password_decrypt(self.password, msg_obj)
             to_print = msg_obj.message
             print(MAGENTA + ">>> " + ("You: " if message[1] == self.username else BLUE + message[1] + ": ") + GREEN + to_print) # color differently based on user or receiver sent
-        print(RESET)
+        if len(messages) > 0:
+            print(CYAN + "------END HISTORY------" + RESET)
         curs.close()
 
     def create_group(self, groupname):
