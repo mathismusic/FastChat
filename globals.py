@@ -1,5 +1,5 @@
 class Globals:
-    default_host = '192.168.103.215'
+    default_host = '192.168.43.215'
     Servers = [
         [default_host, "61001", 0], 
         # [default_host, "61002", 0], 
