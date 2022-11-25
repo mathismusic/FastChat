@@ -49,10 +49,12 @@ class ServerMessageHandler:
         try:
             # Should be ready to read
             data = self.sock.recv(4096)
-            print("whew: " + data + "::")
+            # print("whew: " + data + "::")
         except BlockingIOError:
             # Resource temporarily unavailable (errno EWOULDBLOCK)
             pass
+        except Exception as e:
+            print(e)
         else:
             if data:
                 self._recv_buffer += data
@@ -123,7 +125,7 @@ class ServerMessageHandler:
         try:
             while True:
                 self._read()
-                if self._recv_buffer == "":
+                if self._recv_buffer == b"":
                     return ""
 
                 if self._jsonheader_len is None:
