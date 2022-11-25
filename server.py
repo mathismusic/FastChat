@@ -88,6 +88,8 @@ class Server:
         try:
             if mask & selectors.EVENT_READ:
                 msg = s.read()
+                if not msg:
+                    return
                 if type(msg)==dict:
                     username = msg['Username']
                 else:
@@ -196,8 +198,9 @@ class Server:
             if mask & selectors.EVENT_WRITE:
                 if data.outb!=[]:
                     response = data.outb.pop(0)
+                    print('yes', response, data.outb, data.username)
                     # print(f"Echoing {data.outb!r} to {data.addr}")
-                    self.onlineUserSockets[msg['Recipient']].write()
+                    self.onlineUserSockets[response['Recipient']].write()
                     # Should be ready to write
         except Exception as e:
             print(e)
@@ -213,6 +216,7 @@ class Server:
         """Main run function, calls the main serve loop"""
         self.sock.setblocking(False)
         self.selector.register(fileobj=self.sock, events=selectors.EVENT_READ, data=None)
+        # print(str(self.selector.get_map()))
 
         try:
             while True:
@@ -234,10 +238,10 @@ class Server:
             temp_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             temp_sock.connect((globals.Globals.Servers[i][0],int(globals.Globals.Servers[i][1])))
             self.onlineUserSockets[s] = ServerMessageHandler(temp_sock, (globals.Globals.Servers[i][0],int(globals.Globals.Servers[i][1])),s)
-            # self.onlineUserSockets[s].write({"Username": s})
-            data = SimpleNamespace(username="Server " + self.index, inb=[], outb=[{"Username": s}])
+            self.onlineUserSockets[s].write({"Username": s})
+            #data = SimpleNamespace(username=s, inb=[], outb=[{"Username": s2}])
             events = selectors.EVENT_READ | selectors.EVENT_WRITE
-            self.selector.register(self.onlineUserSockets[s].sock,events,data=data)
+            self.selector.register(self.onlineUserSockets[s].sock,events,data=None)
             
     def num_active_clients(self):
         return self.numClients
