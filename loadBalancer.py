@@ -12,6 +12,7 @@ from message import *
 class LoadBalancer:
     def __init__(self, servers: list[list[str]], host: str, port: str, database: str, algorithm='least-load') -> None:
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.sock.setsockopt(socket.SOL_SOCKET,socket.SO_REUSEADDR,1)
         self.HOST = host  # The load balancer's hostname or IP address
         self.PORT = int(port)  # The port used by the balancer
         self.servers = list(servers)

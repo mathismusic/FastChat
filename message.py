@@ -7,7 +7,8 @@ import socket
 class Message:
     """
     This is the standard format of all messages transferred between servers and clients.
-    It is in standard JSON format with attributes Sender, Recipient and Message
+    It is in standard JSON format with attributes Sender, Recipient, Message, Fernet_Key and Group_Name
+    All messages on server side are encrypted.
     """
     def __init__(self, sender, rec, msg, key, grp_name =  None) -> None:
         self.sender: str =  sender
@@ -23,6 +24,9 @@ class Message:
         return json.dumps({"Sender": self.sender, "Recipient": self.recipient, "Message": self.message, "Key": self.fernet_key, "Group_Name": self.group_name }, default=str)
 
 class ServerMessageHandler:
+    """
+    The message protocol 
+    """
     def __init__(self,sock, addr,connectedTo="_default"):
         self.connectedTo = connectedTo
         self.sock: socket.socket = sock
@@ -51,13 +55,14 @@ class ServerMessageHandler:
             # Should be ready to read
             data = self.sock.recv(4096)
             # print("whew: " + data + "::")
-        except BlockingIOError:
-            # Resource temporarily unavailable (errno EWOULDBLOCK)
-            pass
+        # except BlockingIOError:
+        #     # Resource temporarily unavailable (errno EWOULDBLOCK)
+        #     pass
         except Exception as e:
             print(e)
         else:
             if data != b'':
+                # print(data.decode())
                 self._recv_buffer += data
             else:
                 raise RuntimeError("Peer closed.")
@@ -68,15 +73,17 @@ class ServerMessageHandler:
             try:
                 # Should be ready to write
                 sent = self.sock.send(self._send_buffer)
-            except BlockingIOError:
-                # Resource temporarily unavailable (errno EWOULDBLOCK)
-                pass
+            # except BlockingIOError:
+            #     # Resource temporarily unavailable (errno EWOULDBLOCK)
+            #     pass
+            except Exception as e:
+                print(e)
             else:
                 self._send_buffer = self._send_buffer[sent:]
                 # Close when the buffer is drained. The response has been sent.
-                if sent and not self._send_buffer:
-                    #self.close()
-                    pass
+                # if sent and not self._send_buffer:
+                #     #self.close()
+                #     pass
 
     def _json_encode(self, obj, encoding):
         return json.dumps(obj, ensure_ascii=False, default=str).encode(encoding)
@@ -90,7 +97,7 @@ class ServerMessageHandler:
         return obj
 
     def _create_message(
-        self, *, content_bytes, content_type, content_encoding
+        self, content_bytes, content_type, content_encoding
     ):
         jsonheader = {
             "byteorder": sys.byteorder,
@@ -99,8 +106,9 @@ class ServerMessageHandler:
             "content-length": len(content_bytes),
         }
         jsonheader_bytes = self._json_encode(jsonheader, "utf-8")
-        message_hdr = struct.pack(">Q", len(jsonheader_bytes))
+        message_hdr = struct.pack(">h", len(jsonheader_bytes))
         message = message_hdr + jsonheader_bytes + content_bytes
+        print(message)
         return message
 
     def _create_response_json_content(self):
@@ -108,7 +116,7 @@ class ServerMessageHandler:
         response = {
             "content_bytes": self._json_encode(self.request, content_encoding),
             "content_type": "text/json",
-            "content_encoding": content_encoding,
+            "content_encoding": content_encoding
         }
         return response
 
@@ -121,12 +129,40 @@ class ServerMessageHandler:
     #     }
     #     return response        
         
+        
+    # def rd(self):
+    #     if self._recv_buffer == b"":
+    #         hdrlen = 2;
+    #         hdr = self.sock.recv(hdrlen)
+    #         self._jsonheader_len = struct.unpack(
+    #             ">h", hdr
+    #         )[0]
+    #         self.jsonheader = self._json_decode(
+    #             self.sock.recv(self._jsonheader_len), "utf-8"
+    #         )
+    #         for reqhdr in (
+    #             "byteorder",
+    #             "content-length",
+    #             "content-type",
+    #             "content-encoding",
+    #         ):
+    #             if reqhdr not in self.jsonheader:
+    #                 raise ValueError(f"Missing required header '{reqhdr}'.")
+            
+    #         content_len = self.jsonheader["content-length"]
+            
+    #         if self.jsonheader["content-type"] == "text/json":
+    #             encoding = self.jsonheader["content-encoding"]
+    #             msg = self._json_decode(content_len, encoding)
+    #             return msg
+        
 
     def read(self):
         try:
             while True:
                 self._read()
                 if self._recv_buffer == b"":
+                    print("NULL")
                     return ""
 
                 if self._jsonheader_len is None:
@@ -137,7 +173,7 @@ class ServerMessageHandler:
                         self.process_jsonheader()
                 if self.jsonheader is not None:
                     msg = self.process_request()
-                    if msg != "":
+                    if msg not in ["",None]:
                         self._jsonheader_len = None
                         self.jsonheader = None
                         self.request = None
@@ -173,10 +209,10 @@ class ServerMessageHandler:
             self.sock = None
 
     def process_protoheader(self):
-        hdrlen = 8
+        hdrlen = 2
         if len(self._recv_buffer) >= hdrlen:
             self._jsonheader_len = struct.unpack(
-                ">Q", self._recv_buffer[:hdrlen]
+                ">h", self._recv_buffer[:hdrlen]
             )[0]
             self._recv_buffer = self._recv_buffer[hdrlen:]
 
@@ -236,5 +272,6 @@ class ServerMessageHandler:
 
     def create_response(self):
         response = self._create_response_json_content()
-        message = self._create_message(**response)
+        message = self._create_message(response["content_bytes"], response["content_type"], response["content_encoding"])
+        print(message)
         self._send_buffer += message

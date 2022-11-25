@@ -14,7 +14,8 @@ from message import *
 #users = {}
 class Server:
     """Server class. Contains host address and port, 
-    along with a connection to the PSQL server hosted locally."""
+    along with a connection to the PSQL server hosted locally.
+    Contains a dictionary of Online users mapping to their MessageHandlers."""
     def __init__(self, host: str, port: str, database: str, index: str) -> None:
         """Constructor, initializes to a default IP and port. Creates empty databases."""
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -75,8 +76,8 @@ class Server:
         print(f"Listening on {(self.HOST, self.PORT)}")
 
     def accept_connection(self):
-        """Accepts the connection request from a client, after correct authentication.
-        Creates a new account on corresponding request."""
+        """Accepts the connection request from an authenticated client.
+        Also accepts connections from other servers. Writes pending messages to the client."""
         conn, addr = self.sock.accept()  # Should be ready to read
         
         s = ServerMessageHandler(conn, addr)
@@ -243,6 +244,7 @@ class Server:
             return
 
     def run(self):
+        """Main run function, calls the main serve loop"""
         self.sock.setblocking(False)
         self.selector.register(fileobj=self.sock, events=selectors.EVENT_READ, data=None)
 
@@ -260,6 +262,7 @@ class Server:
         self.selector.close()
         
     def makeKn(self):
+        """Connects each server to previously created servers, thus creating a fully connected server graph"""
         for i in range(0,int(self.index)):
             s = "Server " + str(i)
             temp_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)

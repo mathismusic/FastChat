@@ -15,11 +15,16 @@ from globals import Globals
 class Client:
     """
     This represents the Client/User of the app. Consists of attributes host, port of server and 
-    (unique) username of client, along with a 'receiver' which is the current receiver. 
+    (unique) username of client, along with a 'receiver' which is the current receiver. Also contains 
+    the socket, database connection and the IO Selector attributes. Contains a Crypt object for cryptography.
     """
 
     def __init__(self, database) -> None:
-        """Constructor"""
+        """Constructor, connects to the main server database. Sets host/port attributes.
+
+        :param: database: The name of the main users database
+        :type: database str
+        """
         self.s = None# the client's socket
         self.HOST = Globals.default_host  # The server's hostname or IP address
         self.PORT = 61001 if len(sys.argv) == 1 else 61002  # The port used by the server
@@ -50,12 +55,13 @@ class Client:
         
     def login(self) -> None:
         """Asks login details from user, and sends them to server for authentication.
-        Enter -1 if new user. Also connects to the PostGRESQL server for database handling."""
+        Enter -1 if new user. Also connects to the personal PostGRESQL server on cloud
+        for database handling. Pending messages are fetched and stores in the personal database.
+        Generates the RSA tokens for new users."""
          # go to port self.PORT on machine self.HOST
         try:
             while True:
                 self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                
                 username = input(BOLD_BLACK + "Username (type -1 to create an account): " + MAGENTA)
                 newuser = (username == '-1')
                 if newuser:
@@ -89,7 +95,7 @@ class Client:
                     self.handler = ServerMessageHandler(self.s, (data['hostname'], int(data['port'])))
                     self.handler.write({"Username": username})
                     print(username)
-                    self.s.setblocking(False)
+                    self.s.setblocking(True)
                     self.selector.register(fileobj=self.s,events= selectors.EVENT_READ ,data="Server")
                     break
                 self.s.close()
@@ -162,11 +168,12 @@ class Client:
             
             # load pending messages onto the client's database
             size = self.handler.read() # change to iterative
-            
+            print(int(size))
             for i in range(int(size)):
                 # pendingmsg = self.s.recv(1024).decode()
                 # msg = json.loads(pendingmsg)
                 d = self.handler.read()
+                print(d)
                 msg = json.loads(d[1])
                 # decrypt the message, then encrypt with password to store in history
                 msg_obj = Message(msg['Sender'], msg['Recipient'], msg['Message'], msg['Key'], msg['Group_Name'])
@@ -191,7 +198,9 @@ class Client:
 
     def sendMessage(self, input):
         """
-        Sends message, which inserts into the message history of the sender
+        Sends message after RSA encryption,
+        and inserts into sender's history after password encryption
+
         :param: input - The message string
         """
         
@@ -228,7 +237,7 @@ class Client:
 
     def receiveMessage(self):
         """
-        Receives message, adding it into the chat history as well
+        Receives message, decrypts it and adds it into the chat history after password encryption. 
         """
         msg = self.handler.read()
         if msg == "received":
@@ -266,7 +275,13 @@ class Client:
         self.display()
 
     def serve(self):
-        """Main serve loop, specify who you would like to talk to, and -cd to change the recipient."""
+        """Main loop, specify who you would like to talk to, and talk!
+        Flags
+        
+        - -e   - Exit
+        - -cd  - Change the chat
+        - -add - Add member to current group
+        - -del - Delete member from current group"""
 
         print(WHITE + GREEN_BACKGROUND + 'Welcome to the chat. Say -e to exit the chat at any time, or simply use ctrl+C.', end='' + RESET)
         self.get_recipient()
@@ -339,6 +354,11 @@ class Client:
         sys.stdout.flush()     
         
     def add_recipient(self, name_of_user):
+        """
+        Used to add a member to a group
+
+        :param: name_of_user: Name of the user to add to the group
+        """
         curs = self.database_connection.cursor()
         curs.execute("""SELECT userpubkey FROM usercreds WHERE username=%s""", (name_of_user,))
         pub_key_string = curs.fetchall()
@@ -352,7 +372,9 @@ class Client:
             #self.cryptography.get_rsa_encrypt_key(pub_key_string[0][0].encode())
         
     def get_recipient(self):
-        """Get all messages from history from a given contact, ordered by time, and display"""
+        """Get all messages from history from a given contact or group,
+        ordered by time, and display after password decryption.
+        Supports quickchat if history isn't demanded."""
         self.receivers={}
         
         while True:
@@ -451,7 +473,7 @@ class Client:
         curs = self.sqlConnection.cursor()
         curs.execute("SELECT chat_id FROM chats WHERE receiver=%s",(rvr,))
         chat_id = curs.fetchall()[0][0]
-        curs.execute(f"SELECT chat_id, sender_name, msg, fernetkey,t FROM history WHERE chat_id={chat_id} ORDER BY t DESC LIMIT 20")
+        curs.execute(f"SELECT chat_id, sender_name, msg, fernetkey,t FROM history WHERE chat_id=%s ORDER BY t DESC LIMIT 20",(chat_id,))
         messages = curs.fetchall()
         for message in reversed(messages):
             msg_obj = Message(None, None, message[2], message[3], None)
@@ -462,6 +484,12 @@ class Client:
         curs.close()
 
     def create_group(self, groupname):
+        """
+        Create a group. Prompts for number of people and then for usernames.
+        Supports multiple admins.
+
+        :param: groupname: The name of the group
+        """
         print(CYAN + "How many more users would you like to add?: " + BLUE)
         num_to_add = int(input())
         admins = [self.username]
@@ -495,6 +523,9 @@ class Client:
         self.inAGroup = True
 
     def add_member(self):
+        """
+        Add a member to the current group, called when the '-add' flag is given.
+        """
         if not self.inAGroup:
             print(YELLOW + "Cannot add a member to a DM, of course :)" + RESET)
             return
@@ -533,6 +564,9 @@ class Client:
         print(BLUE + "Successfully added member " + GREEN + name_of_user + BLUE + "!" + RESET)
 
     def delete_member(self):
+        """
+        Delete a member from the current group. Is called when the '-del' flag is given.
+        """
         if not self.inAGroup:
             print(YELLOW + "Cannot delete a member from a DM, of course :)" + RESET)
             return
