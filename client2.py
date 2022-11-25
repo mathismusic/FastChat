@@ -20,7 +20,7 @@ class Client:
 
     def __init__(self, database) -> None:
         """Constructor"""
-        self.s = None # the client's socket
+        self.s = None# the client's socket
         self.HOST = Globals.default_host  # The server's hostname or IP address
         self.PORT = 61001 if len(sys.argv) == 1 else 61002  # The port used by the server
         self.LB_HOST = Globals.default_host  # The load balancer's hostname or IP address
@@ -54,7 +54,7 @@ class Client:
         try:
             while True:
                 self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                self.s.connect((self.LB_HOST, self.LB_PORT))
+                self.s.connect((self.LB_HOST, self.LB_PORT)) 
                 username = input(BOLD_BLACK + "Username (type -1 to create an account): " + MAGENTA)
                 newuser = (username == '-1')
                 if newuser:
@@ -77,7 +77,7 @@ class Client:
                 self.handler.write(login_data)
                 print("hello2")
                 data = self.handler.read()
-                print(data)
+                #print(data)
                 if (data in ["invalid", ""]): # the "" is just in case the data doesn't make it to the client before the load balancer returns - okay weird bug to fix
                     print(CYAN + ("This username already exists, please try again." if newuser else "Invalid username or password, please try again.") + RESET)
                 else: 
@@ -205,7 +205,7 @@ class Client:
             print(self.receivers[receiver])
             self.cryptography.get_rsa_encrypt_key((self.receivers[receiver]).encode())
             encrypted_to_send = self.cryptography.main_encrypt(to_send)
-            to_send.fernet_key = self.cryptography.fernet_encrypt_key
+            to_send.fernet_key = self.cryptography.fernet_encrypt_key.decode()
             to_store = self.cryptography.password_encrypt(self.password, to_send)
             # print(to_send)
             
@@ -228,13 +228,15 @@ class Client:
         Receives message, adding it into the chat history as well
         """
         msg = self.handler.read()
+        if msg == "received":
+            return
         data = {}
         if msg in [None, ""]:
             print(YELLOW + "msg: " + RESET + "|" + msg + "|")
             return
 
         print(YELLOW + "msg: " + RESET + "|" + msg + "|")
-        # data = json.loads(msg)   
+        data = msg   
         data = self.cryptography.main_decrypt(Message(data['Sender'], data['Recipient'], data['Message'], data['Key'], data['Group_Name'])) 
         to_store = self.cryptography.password_encrypt(self.password, data)
         print(YELLOW + "data: " + RESET + "|" + str(data) + "|\n\n")
@@ -450,9 +452,8 @@ class Client:
         for message in reversed(messages):
             msg_obj = Message(None, None, message[2], message[3], None)
             msg_obj = self.cryptography.password_decrypt(self.password, msg_obj)
-            message[2] = msg_obj.message
-            message[3] = msg_obj.fernet_key
-            print(MAGENTA + ">>> " + ("You: " if message[1] == self.username else BLUE + message[1]) + GREEN + message[2]) # color differently based on user or receiver sent
+            to_print = msg_obj.message
+            print(MAGENTA + ">>> " + ("You: " if message[1] == self.username else BLUE + message[1]) + GREEN + to_print) # color differently based on user or receiver sent
         print(RESET)
         curs.close()
 

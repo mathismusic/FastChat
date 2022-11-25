@@ -47,8 +47,10 @@ class System:
                         userpwd VARCHAR(256) NOT NULL,
                         userprivkey TEXT NOT NULL,
                         userpubkey TEXT NOT NULL,
-                        connectedto INTEGER NOT NULL DEFAULT -1
+                        connectedto INTEGER NOT NULL
                     );""") # isonline INTEGER DEFAULT 1
+        curs.execute("ALTER TABLE usercreds ALTER COLUMN connectedto SET DEFAULT -1;")
+        self.databaseServer.commit()
         curs.execute("""CREATE TABLE IF NOT EXISTS groups (
                             groupid SERIAL PRIMARY KEY,
                             groupname VARCHAR(256) NOT NULL,
