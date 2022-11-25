@@ -36,6 +36,7 @@ class Client:
         self.receivers: dict[str, str] = {} # receiver to their public key
         self.database = database
         self.inAGroup = False
+        self.group_name = None
         self.isAdmin = False
         self.events = []
         self.sqlConnection = None # database connection object
@@ -64,46 +65,49 @@ class Client:
         try:
 
             while True:
-                username = input(BOLD_BLACK + "Username (type -1 to create an account): " + MAGENTA)
-                newuser = (username == '-1')
-                if newuser:
-                    username = input(BOLD_BLACK + "Choose username: " + MAGENTA)
-                password = input(BOLD_BLACK + ("Choose " if newuser else "") + "Password: " + MAGENTA)
-                self.password = password
-                self.username = username
-                print(RESET)
-                
-                priv_key = None
-                pub_key = None
-                if newuser:
-                    self.cryptography.gen_rsa_key()
-                    priv_key = self.cryptography.get_rsa_private_str(password).decode()
-                    pub_key = self.cryptography.get_rsa_public_str().decode()
-                hashed_password = self.cryptography.hash_string(password)
-                login_data = {"Username" : username, "Password" : hashed_password, "Newuser" : newuser, "Private_Key" : priv_key, "Public_Key" : pub_key}
-                # self.s.sendall(json.dumps(login_data).encode())
-                
-                self.handler = ServerMessageHandler(self.s, (self.LB_HOST, self.LB_PORT))
-                self.handler.write(login_data)
-                #print(login_data)
-                
-                data = self.handler.read()
-                #print(data)
-                if (data in ["invalid", ""]): # the "" is just in case the data doesn't make it to the client before the load balancer returns - okay weird bug to fix
-                    print(CYAN + ("This username already exists, please try again." if newuser else "Invalid username or password, please try again.") + RESET)
-                else:
-                    print(data)
-                    self.s.close()
-                    self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                    self.s.connect((data['hostname'], int(data['port'])))
-                    self.handler = ServerMessageHandler(self.s, (data['hostname'], int(data['port'])), "Server")
-                    self.handler.write({"Username": username})
-                    # print(username)
-                    self.s.setblocking(True)
-                    # data = SimpleNamespace(username = "Server", outb=[{"Username": username}],inb=[])
-                    # self.selector.register(fileobj=self.s,events= selectors.EVENT_READ ,data=data)
-                    break
-                
+                try:
+                    username = input(BOLD_BLACK + "Username (type -1 to create an account): " + MAGENTA)
+                    newuser = (username == '-1')
+                    if newuser:
+                        username = input(BOLD_BLACK + "Choose username: " + MAGENTA)
+                    password = input(BOLD_BLACK + ("Choose " if newuser else "") + "Password: " + MAGENTA)
+                    self.password = password
+                    self.username = username
+                    print(RESET)
+                    
+                    priv_key = None
+                    pub_key = None
+                    if newuser:
+                        self.cryptography.gen_rsa_key()
+                        priv_key = self.cryptography.get_rsa_private_str(password).decode()
+                        pub_key = self.cryptography.get_rsa_public_str().decode()
+                    hashed_password = self.cryptography.hash_string(password)
+                    login_data = {"Username" : username, "Password" : hashed_password, "Newuser" : newuser, "Private_Key" : priv_key, "Public_Key" : pub_key}
+                    # self.s.sendall(json.dumps(login_data).encode())
+                    
+                    self.handler = ServerMessageHandler(self.s, (self.LB_HOST, self.LB_PORT))
+                    self.handler.write(login_data)
+                    #print(login_data)
+                    
+                    data = self.handler.read()
+                    #print(data)
+                    if (data in ["invalid", ""]): # the "" is just in case the data doesn't make it to the client before the load balancer returns - okay weird bug to fix
+                        print(CYAN + ("This username already exists, please try again." if newuser else "Invalid username or password, please try again.") + RESET)
+                    else:
+                        print(data)
+                        self.s.close()
+                        self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                        self.s.connect((data['hostname'], int(data['port'])))
+                        self.handler = ServerMessageHandler(self.s, (data['hostname'], int(data['port'])), "Server")
+                        self.handler.write({"Username": username})
+                        # print(username)
+                        self.s.setblocking(True)
+                        # data = SimpleNamespace(username = "Server", outb=[{"Username": username}],inb=[])
+                        # self.selector.register(fileobj=self.s,events= selectors.EVENT_READ ,data=data)
+                        break
+                except KeyboardInterrupt as e:
+                    print(BOLD_BLUE + "Thank you for using FastChat!" + RESET)
+                    sys.exit(1)    
                     
             
             # outside the while loop
@@ -221,7 +225,7 @@ class Client:
         # members = ast.literal_eval(members)
         
         for receiver in self.receivers:
-            to_send = Message(self.username, receiver, input, None)
+            to_send = Message(self.username, receiver, input, None, self.group_name if self.inAGroup else None)
             #print(self.receivers[receiver])
             self.cryptography.get_rsa_encrypt_key((self.receivers[receiver]).encode())
             encrypted_to_send = self.cryptography.main_encrypt(to_send)
@@ -232,11 +236,21 @@ class Client:
             self.handler.write(encrypted_to_send.get_json())
 
             curs = self.sqlConnection.cursor()
-            curs.execute("SELECT (chat_id) FROM chats WHERE receiver=%s",(receiver,))
+            if self.inAGroup:
+                curs.execute("SELECT chat_id FROM chats WHERE receiver=%s",(self.group_name,))
+            else:
+                curs.execute("SELECT chat_id FROM chats WHERE receiver=%s",(receiver,))
             chat_id = curs.fetchall()[0][0]
+            if not self.inAGroup:
+                curs.execute("INSERT INTO history (chat_id, sender_name, msg, fernetkey) VALUES (%s,%s,%s,%s)",(chat_id,to_store.sender,to_store.message, to_store.fernet_key))
+                self.sqlConnection.commit()
+                
+        if self.inAGroup:
             curs.execute("INSERT INTO history (chat_id, sender_name, msg, fernetkey) VALUES (%s,%s,%s,%s)",(chat_id,to_store.sender,to_store.message, to_store.fernet_key))
             self.sqlConnection.commit()
-            curs.close()
+        curs.close()
+
+        
 
     def receiveMessage(self, tag=False):
         """
@@ -424,6 +438,7 @@ class Client:
                 if self.username in adminlist:
                     self.isAdmin = True
                 self.inAGroup = True
+                self.group_name = rvr
                     
             elif rvr[:4] == '-cg ':
                 rvr = 'group_' + rvr[4:]
@@ -432,6 +447,7 @@ class Client:
                 members = cursor.fetchall()
                 cursor.close()
                 if len(members)==0:
+                    self.group_name = rvr
                     self.create_group(rvr)
                     self.isAdmin = True
                 else:
@@ -501,6 +517,7 @@ class Client:
 
         :param: groupname: The name of the group
         """
+
         print(CYAN + "How many more users would you like to add?: " + BLUE)
         num_to_add = int(input())
         admins = [self.username]
@@ -524,7 +541,7 @@ class Client:
 
 
         curs = self.database_connection.cursor()
-        curs.execute("""INSERT INTO groups (groupname, groupmembers, adminlist) VALUES (%s, %s, %s)""", (groupname, str(self.receivers.keys()), str(admins)))
+        curs.execute("""INSERT INTO groups (groupname, groupmembers, adminlist) VALUES (%s, %s, %s)""", (groupname, str(list(self.receivers.keys()) + [self.username]), str(admins)))
         self.database_connection.commit()
         curs.close()
         curs = self.sqlConnection.cursor()
