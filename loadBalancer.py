@@ -93,6 +93,12 @@ class LoadBalancer:
     def choose_server(self) -> list[str]:
         self.se = (self.se + 1) % len(globals.Globals.Servers)
         return [globals.Globals.Servers[self.se][0], globals.Globals.Servers[self.se][1]]
+
+        curs = self.databaseServer.cursor()
+        curs.execute("""SELECT serverindex, MIN numclients FROM serverload""")
+        res = curs.fetchall()[0][0]
+        curs.close()
+        return [globals.Globals.Servers[res][0], globals.Globals.Servers[ans][1]]
         ans = 0
         print(globals.Globals.Servers)
         for i in range(len(globals.Globals.Servers)):
