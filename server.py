@@ -41,7 +41,7 @@ class Server:
         self.sock.bind((self.HOST, self.PORT))
         self.sock.listen()
         self.sock.setblocking(True)
-        print(f"Server #{int(self.index) + 1} is operational!")
+        print(f"Server #{int(self.index)} is operational!")
         print(f"Listening on {(self.HOST, self.PORT)}")
 
     def accept_connection(self):
@@ -66,6 +66,8 @@ class Server:
                     s.connectedTo = username
                     # serverindex = int(msg[7:])
                     self.onlineUserSockets[username] = s
+                    print("Connecting to ", username, " from ", self.index)
+                    print(list(self.onlineUserSockets.keys()))
                     conn.setblocking(True)
                     self.events.append(conn)
                     return
@@ -78,6 +80,7 @@ class Server:
                 globals.Globals.Servers[int(self.index)][2] += 1
                 print(globals.Globals.Servers[int(self.index)])
                 self.onlineUserSockets[username] = s
+                print("Connecting to ", username, " from ", self.index)
                 self.events.append(conn)
                 
                 curs = self.databaseServer.cursor()
@@ -90,6 +93,8 @@ class Server:
                     curs.execute("DELETE FROM pending WHERE msgid=%s",(mess[0],))
                     self.databaseServer.commit()
                 curs.close()
+
+                print(username, list(self.onlineUserSockets.keys()))
 
         except Exception:
             print(f"Client " + GREEN + username + RESET + " closed the connection.")
@@ -198,10 +203,12 @@ class Server:
         """Connects each server to previously created servers, thus creating a fully connected server graph"""
         for i in range(0,int(self.index)):
             s = "Server " + str(i)
+            s2 = "Server " + str(self.index)
             temp_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             temp_sock.connect((globals.Globals.Servers[i][0],int(globals.Globals.Servers[i][1])))
             self.onlineUserSockets[s] = ServerMessageHandler(temp_sock, (globals.Globals.Servers[i][0],int(globals.Globals.Servers[i][1])),s)
-            self.onlineUserSockets[s].write({"Username": s})
+            print("Sending request to ", i, " from ", self.index)
+            self.onlineUserSockets[s].write({"Username": s2})
             #data = SimpleNamespace(username=s, inb=[], outb=[{"Username": s2}])
             # events = selectors.EVENT_READ | selectors.EVENT_WRITE
             # self.events.register(self.onlineUserSockets[s].sock,events,data=None)
@@ -211,8 +218,12 @@ class Server:
         return self.numClients
 
 if __name__ == '__main__':
-    server = Server(sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4])
-    server.makeKn()
-    server.run()
+    try:
+        server = Server(sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4])
+        server.makeKn()
+        server.run()
+    except Exception as e:
+        print(e)
+        print(BLUE + "Server disconnected." + RESET)
 
 
