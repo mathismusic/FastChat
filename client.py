@@ -92,7 +92,8 @@ class Client:
                         print("Connection to server lost")
                     else:
                         # print(data)
-                        self.s.close()
+                        if self.s:
+                            self.s.close()
                         self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                         self.s.connect((data['hostname'], int(data['port'])))
                         self.handler = MessageHandler(self.s, (data['hostname'], int(data['port'])), "Server")
@@ -104,8 +105,8 @@ class Client:
                         break
                 except KeyboardInterrupt:
                     print(BOLD_BLUE + "\nThank you for using FastChat!" + RESET)
-                    self.s.close()
-                    self.sqlConnection.close()
+                    if self.s:
+                        self.s.close()
                     sys.exit(1)    
                             
             
@@ -207,7 +208,8 @@ class Client:
 
         except KeyboardInterrupt:
             print(BOLD_BLUE + "\nThank you for using FastChat!" + RESET)
-            self.s.close()
+            if self.s:
+                self.s.close()
             self.sqlConnection.close()
             sys.exit(1)
         
@@ -355,6 +357,8 @@ class Client:
                             self.receivers = {}
                             self.get_recipient()
                         elif usr_input == "-e": # user wants to exit
+                            if self.s:
+                                self.s.close()
                             print(BOLD_BLUE + "Thank you for using FastChat!" + RESET)
                             return
                         elif usr_input == "-add": # user wants to add member to group
@@ -374,7 +378,8 @@ class Client:
 
         except KeyboardInterrupt:
             print(BOLD_BLUE + "\nThank you for using FastChat!" + RESET)
-            self.s.close()
+            if self.s:
+                self.s.close()
             self.sqlConnection.close()
             sys.exit(1)
         
@@ -419,6 +424,8 @@ class Client:
                     continue
                 
                 if rvr == '-e':
+                    if self.s:
+                        self.s.close()
                     print(BOLD_BLUE + "Thank you for using FastChat!" + RESET)
                     sys.exit(1)
                 if rvr[:3] == '-g ':
@@ -478,7 +485,8 @@ class Client:
 
             except KeyboardInterrupt as e:
                 print(BOLD_BLUE + "\nThank you for using FastChat!" + RESET)
-                self.s.close()
+                if self.s:
+                    self.s.close()
                 self.sqlConnection.close()
                 sys.exit(1)
             
@@ -494,7 +502,7 @@ class Client:
         curs.execute("SELECT chat_id, sender_name, msg, fernetkey,t FROM history WHERE chat_id=%s ORDER BY t DESC LIMIT 20", (chat_id,))
         messages = curs.fetchall()
         for message in reversed(messages):
-            msg_obj = Message(None, None, message[2], message[3], None)
+            msg_obj = Message(message[1], self.username, message[2], message[3], None)
             msg_obj = self.cryptography.password_decrypt(self.password, msg_obj)
             to_print = msg_obj.message
             if to_print[:9] == "__image__":
@@ -580,13 +588,15 @@ class Client:
         curs = self.database_connection.cursor() 
         curs.execute("""SELECT groupmembers, adminlist FROM groups WHERE groupname=%s""", (self.group_name,))
         data = curs.fetchall()
-        groupmembers_new = str(ast.literal_eval(data[0][0]).append(name_of_user))
+        groupmembers_new = ast.literal_eval(data[0][0])
+        groupmembers_new.append(name_of_user)
 
         self.sendMessage("__added__"+name_of_user)
 
+        groupadmins_new = ast.literal_eval(data[0][1])
         if added_is_admin:
-            groupadmins_new = str(ast.literal_eval(data[0][1]).append(name_of_user))
-        curs.execute("""UPDATE groups SET groupmembers=%s, adminlist=%s WHERE groupname=%s""", (groupmembers_new, groupadmins_new, self.group_name))
+            groupadmins_new.append(name_of_user)
+        curs.execute("""UPDATE groups SET groupmembers=%s, adminlist=%s WHERE groupname=%s""", (str(groupmembers_new), str(groupadmins_new), self.group_name))
         self.database_connection.commit()
         curs.close()
         print(BLUE + "Successfully added member " + GREEN + name_of_user + BLUE + "!" + RESET)
@@ -618,11 +628,12 @@ class Client:
         curs = self.database_connection.cursor()
         curs.execute("""SELECT groupmembers, adminlist FROM groups WHERE groupname=%s""", (self.group_name,))
         data = curs.fetchall()
-        groupmembers_new = str(ast.literal_eval(data[0][0]).remove(name_of_user))
+        groupmembers_new = ast.literal_eval(data[0][0])
+        groupmembers_new.remove(name_of_user)
         admins = ast.literal_eval(data[0][1])
         if name_of_user in admins:
-            groupadmins_new = str(ast.literal_eval(data[0][1]).remove(name_of_user))
-        curs.execute("""UPDATE groups SET groupmembers=%s, adminlist=%s WHERE groupname=%s""", (groupmembers_new, groupadmins_new, self.group_name))
+            admins.remove(name_of_user)
+        curs.execute("""UPDATE groups SET groupmembers=%s, adminlist=%s WHERE groupname=%s""", (str(groupmembers_new), str(admins), self.group_name))
         self.database_connection.commit()
         curs.close()
 
