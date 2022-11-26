@@ -23,7 +23,7 @@ class Message:
     def __repr__(self) -> str:
         return json.dumps({"Sender": self.sender, "Recipient": self.recipient, "Message": self.message, "Key": self.fernet_key, "Group_Name": self.group_name }, default=str)
 
-class ServerMessageHandler:
+class MessageHandler:
     """
     The message protocol 
     """

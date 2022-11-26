@@ -4,6 +4,7 @@ import ast
 import psycopg2
 import globals
 from message import *
+import random
 # import json
 # import sys
 
@@ -32,7 +33,7 @@ class LoadBalancer:
         self.userDBName = database
         self.algorithm = algorithm
         self.events = []
-        self.handler = None
+        self.handlers = {}
         self.databaseServer = psycopg2.connect(
             database=self.userDBName,
             host=self.HOST,
@@ -57,14 +58,15 @@ class LoadBalancer:
         conn, addr = self.sock.accept()  # Should be ready to read
         conn.setblocking(True)
         self.events.append(conn)
-        self.handler = ServerMessageHandler(conn, addr)
-        # print('0')
+        self.handlers[addr] = MessageHandler(conn, addr)
         
-    def check_and_allocate_client(self, conn):
-        msg = self.handler.read()
+    def check_and_allocate_client(self, conn: socket.socket):
+        curr_handler = self.handlers[conn.getpeername()]
+        msg = curr_handler.read()
         if msg is None:
             self.events.remove(conn)
-            print("Connection lost")
+            self.handlers.pop(conn.getpeername())
+            print("Connection lost.")
             return
         # print(type(msg))
         # if type(msg) == str: print("|" + msg + "|", msg is None, msg == "")
@@ -75,21 +77,21 @@ class LoadBalancer:
         user_pub_key = user_credentials['Public_Key']
         newuser = user_credentials['Newuser']
         
-        self.handler.connectedTo=username
+        curr_handler.connectedTo = username
 
         curs = self.databaseServer.cursor()
         curs.execute("SELECT * FROM \"usercreds\" WHERE username=%s",(username,))
         data = curs.fetchall()
         if newuser:
             if len(data) > 0:
-                self.handler.write("invalid")
+                curr_handler.write("invalid")
                 return
             else:
                 curs.execute("INSERT INTO \"usercreds\" (username,userpwd,userprivkey, userpubkey) VALUES (%s, %s, %s, %s)",(username,password, user_priv_key, user_pub_key)) # add user.
                 self.databaseServer.commit()
         elif (len(data) == 0 or password != data[0][2]):
             # print(data[0][2])
-            self.handler.write("invalid")
+            curr_handler.write("invalid")
             return
 
         # connect the user to server
@@ -98,8 +100,9 @@ class LoadBalancer:
         curs.execute("UPDATE \"usercreds\" SET connectedto=%s WHERE username=%s",(self.servers.index(server),username))
         self.databaseServer.commit()
         curs.close()
-        conn.close()
-        self.events.pop()
+        # conn.close()
+        self.events.remove(conn)
+        self.handlers.pop(conn.getpeername())
         return
 
     def choose_server(self) -> list[str]:
@@ -109,18 +112,19 @@ class LoadBalancer:
             return [globals.Globals.Servers[self.se][0], globals.Globals.Servers[self.se][1]]
         if self.algorithm == 'least-load':
             curs = self.databaseServer.cursor()
-            curs.execute("""SELECT serverindex, MIN numclients FROM serverload""")
+            curs.execute("""
+            SELECT 
+                serverindex
+            FROM 
+                serverload 
+            WHERE 
+                numclients=(SELECT MIN(numclients) FROM serverload)
+            """)
             res = curs.fetchall()[0][0]
             curs.close()
             return [globals.Globals.Servers[res][0], globals.Globals.Servers[res][1]]
-        # ans = 0
-        # print(globals.Globals.Servers)
-        # for i in range(len(globals.Globals.Servers)):
-        #     if globals.Globals.Servers[i][2] < globals.Globals.Servers[ans][2]:
-        #         ans = i
-        # return [globals.Globals.Servers[ans][0], globals.Globals.Servers[ans][1]]
         if self.algorithm == 'naive':
-            return self.servers[0]
+            return self.servers[random.randint(0, len(globals.Globals.Servers) - 1)]
         raise Exception('Invalid algorithm')
         
     
