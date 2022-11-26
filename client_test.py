@@ -64,11 +64,11 @@ class Client:
 
             while True:
                 try:
-                    username = input(BOLD_BLACK + "Username (type -1 to create an account): " + MAGENTA)
+                    username = input()
                     newuser = (username == '-1')
                     if newuser:
-                        username = input(BOLD_BLACK + "Choose username: " + MAGENTA)
-                    password = input(BOLD_BLACK + ("Choose " if newuser else "") + "Password: " + MAGENTA)
+                        username = input()
+                    password = input()
                     self.password = password
                     self.username = username
                     print(RESET)
@@ -292,27 +292,29 @@ class Client:
                 removedGuy = data.message[9:]
                 if removedGuy == self.username:
                     # self.add_notification("You were added to the group " + data.group_name[6:])
-                    sys.stdout.write(MAGENTA + ">>> " + BLUE + data.sender + ": " + GREEN + data.message + '\n' + RESET)
-                    sys.stdout.flush()
+                    #sys.stdout.write(MAGENTA + ">>> " + BLUE + data.sender + ": " + GREEN + data.message + '\n' + RESET)
+                    #sys.stdout.flush()
                     self.get_recipient()
                 # else:
                 #     self.add_notification(data.sender + " added " + removedGuy + " to the group " + data.group_name[6:])
                 self.receivers.pop(removedGuy)
-                sys.stdout.write(MAGENTA + ">>> " + BLUE + data.sender + ": " + GREEN + data.message + '\n' + RESET)
-                sys.stdout.flush()
+                #sys.stdout.write(MAGENTA + ">>> " + BLUE + data.sender + ": " + GREEN + data.message + '\n' + RESET)
+                #sys.stdout.flush()
                 
             elif (data.message[:9] == "__image__"):
                 self.receive_img(data, timestamp)
             else:
-                sys.stdout.write(MAGENTA + ">>> " + BLUE + data.sender + ": " + GREEN + data.message + '\n' + RESET)
-                sys.stdout.flush()
+                pass
+                #sys.stdout.write(MAGENTA + ">>> " + BLUE + data.sender + ": " + GREEN + data.message + '\n' + RESET)
+                #sys.stdout.flush()
         
         elif not self.inAGroup and data.group_name is None and data.sender in self.receivers:
             if (data.message[:9] == "__image__"):
                 self.receive_img(data, timestamp)
             else:
-                sys.stdout.write(MAGENTA + ">>> " + BLUE + data.sender + ": " + GREEN + data.message + '\n' + RESET)
-                sys.stdout.flush()
+                pass
+                #sys.stdout.write(MAGENTA + ">>> " + BLUE + data.sender + ": " + GREEN + data.message + '\n' + RESET)
+                #sys.stdout.flush()
         
         if self.handler._recv_buffer:
             self.receiveMessage(tag=True)
@@ -330,14 +332,6 @@ class Client:
         self.events.append(self.s)
         self.events.append(sys.stdin)
         
-        print(WHITE + GREEN_BACKGROUND + 'Welcome to the chat. Say -e to exit the chat at any time, or simply use ctrl+C.' + RESET)
-        print(BOLD_YELLOW + "Flags:\n" + BOLD_GREEN + """
-        - -e   - Exit
-        - -cd  - Change the chat
-        - -add - Add member to current group
-        - -del - Delete member from current group
-        - -img - Send an image. The image file's relative path must be provided.
-        """ + RESET)
         self.get_recipient()
         self.display()
         
@@ -367,7 +361,7 @@ class Client:
                             self.delete_member()
 
                         elif usr_input == "-img":
-                            filepath = input(YELLOW + "Relative Path: " + GREEN)
+                            filepath = input()
                             img_to_send = open(filepath, "rb")
                             img_str ="__image__" + binascii.hexlify(img_to_send.read()).decode()
                             self.sendMessage(img_str)
@@ -378,6 +372,7 @@ class Client:
 
         except KeyboardInterrupt:
             print(BOLD_BLUE + "\nThank you for using FastChat!" + RESET)
+            
             if self.s:
                 self.s.close()
             self.sqlConnection.close()
@@ -385,8 +380,9 @@ class Client:
         
     def display(self):
         """User prompt"""
-        sys.stdout.write(MAGENTA + ">>> You: " + GREEN)
-        sys.stdout.flush()     
+        pass
+        #sys.stdout.write(MAGENTA + ">>> You: " + GREEN)
+        #sys.stdout.flush()     
         
     def add_recipient(self, name_of_user):
         """
@@ -414,7 +410,7 @@ class Client:
         
         while True:
             try:
-                sys.stdout.write(CYAN + '\nChoose your chat (start with "-g " if it is a group, "-cg " to create a group): ' + BLUE) 
+                #sys.stdout.write(CYAN + '\nChoose your chat (start with "-g " if it is a group, "-cg " to create a group): ' + BLUE) 
                 rvr = sys.stdin.readline()[:-1]
                 print(RESET)
                 if rvr == self.username:
@@ -424,7 +420,8 @@ class Client:
                     continue
                 
                 if rvr == '-e':
-                    isReadable, _, _ = select.select([self.s],[],[])
+                    isReadable, _, _ = select.select([self.s],[],[], 0.1)
+
                     if len(isReadable):
                         self.receiveMessage()
                     if self.s:
@@ -488,7 +485,7 @@ class Client:
 
             except KeyboardInterrupt as e:
                 print(BOLD_BLUE + "\nThank you for using FastChat!" + RESET)
-                isReadable, _, _ = select.select([self.s],[],[])
+                isReadable, _, _ = select.select([self.s],[],[],0.1)
                 if len(isReadable):
                     self.receiveMessage()
                 if self.s:
@@ -496,7 +493,7 @@ class Client:
                 self.sqlConnection.close()
                 sys.exit(1)
             
-        wantsHistory = input(YELLOW + "Just a quick chat, or do you want to see previous messages? (type 'quick - or simply enter' if the former, else 'all') " + CYAN) # or simply press enter
+        wantsHistory = input() # or simply press enter
         print(RESET)
 
         if wantsHistory in ['quick', '']:
@@ -533,7 +530,7 @@ class Client:
         admins = [self.username]
         i = 0
         while i < num_to_add:
-            name_of_user = input(GREEN + "Username #" + str(i+1) + ": (say -x to skip this user and move on to the next): " + BLUE)
+            name_of_user = input()
             if name_of_user == '-x':
                 i += 1
                 continue
@@ -575,16 +572,16 @@ class Client:
         added_is_admin = False
         added_successfully = False
         while True:
-            name_of_user = input(RED + "Whom would you like to add? (type -x if you want to go back): " + GREEN)
+            name_of_user = input()
             if name_of_user == '-x':
-                print(RESET)
+                #print(RESET)
                 return
             added_successfully = self.add_recipient(name_of_user)
             if not added_successfully: 
-                print(BOLD_YELLOW + "This user doesn't use FastChat, try again." + RESET)
+                # print(BOLD_YELLOW + "This user doesn't use FastChat, try again." + RESET)
                 continue
             while True:
-                print(RED + "Do you want to make this user an admin?(y/n): " + BLUE)
+                # print(RED + "Do you want to make this user an admin?(y/n): " + BLUE)
                 ans = input()
                 if ans == 'y': added_is_admin = True
                 elif ans != 'n': continue
@@ -620,7 +617,7 @@ class Client:
             return
 
         while True:
-            name_of_user = input(RED + "Whom would you like to delete (type -x if you want to go back)? " + GREEN)
+            name_of_user = input()
             if name_of_user == '-x':
                 print(RESET)
                 return
