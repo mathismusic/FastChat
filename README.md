@@ -5,7 +5,7 @@ A simple WhatsApp-like chat service. Supports groups and DMs with secure end-to-
 Detailed documentation can be found in ```/build/html/index.html```
 
 ## Running the Code
-To run the Client, execute ```python client.py```
+To run the Client, execute ```python client.py <server IP address>```
 To run the Servers, execute ```python system.py```
 
 Change globals to change IP addresses, number of servers, etc.

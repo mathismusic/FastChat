@@ -23,11 +23,14 @@ class Message:
     def __repr__(self) -> str:
         return json.dumps({"Sender": self.sender, "Recipient": self.recipient, "Message": self.message, "Key": self.fernet_key, "Group_Name": self.group_name }, default=str)
 
-class ServerMessageHandler:
+class MessageHandler:
     """
-    The message protocol 
+    The message protocol class providing functionalities to send and receive messages
     """
     def __init__(self,sock, addr,connectedTo="_default"):
+        """
+        Constructor, Initializes the connection socket to send and receive messages along with buffers
+        """
         self.connectedTo = connectedTo
         self.sock: socket.socket = sock
         self.addr = addr
@@ -39,6 +42,9 @@ class ServerMessageHandler:
         self.requests = []
 
     def _read(self):
+        """
+        Helper method to receive bytes from the connected device to the receive_buffer
+        """
         try:
             # Should be ready to read
             data = self.sock.recv(4096)
@@ -51,6 +57,9 @@ class ServerMessageHandler:
                 raise RuntimeError("Peer closed.")
 
     def _write(self):
+        """
+        Helper method to send bytes from send_buffer to connected device
+        """
         if self._send_buffer:
             try:
                 # Should be ready to write
@@ -61,9 +70,25 @@ class ServerMessageHandler:
                 self._send_buffer = self._send_buffer[sent:]
                 
     def _json_encode(self, obj, encoding):
+        """
+        Helper method to byte encode the given object using given
+encoding protocol
+
+        :param: obj: the object to be encoded
+
+        :param: encoding: name of the encoding protocol
+        :type: encoding str         """
         return json.dumps(obj, ensure_ascii=False, default=str).encode(encoding)
 
     def _json_decode(self, json_bytes, encoding):
+        """
+        Helper method to decode byte string provided the encoding protocol
+
+        :param: json_bytes: the byte object to be decoded
+
+        :param: encoding: name of the encoding protocol
+        :type: encoding str
+        """
         tiow = io.TextIOWrapper(
             io.BytesIO(json_bytes), encoding=encoding, newline=""
         )
@@ -74,6 +99,9 @@ class ServerMessageHandler:
     def _create_message(
         self, content_bytes, content_type, content_encoding
     ):
+        """
+        Helper method to generate the message to be sent, given the content bytes and types of encoding
+        """
         jsonheader = {
             "byteorder": sys.byteorder,
             "content-type": content_type,
@@ -87,6 +115,9 @@ class ServerMessageHandler:
         return message
 
     def _create_response_json_content(self):
+        """
+        Method to create Message protocol json content 
+        """
         content_encoding = "utf-8"
         response = {
             "content_bytes": self._json_encode(self.request, content_encoding),
@@ -96,6 +127,13 @@ class ServerMessageHandler:
         return response
 
     def read(self,tag=False):
+        """
+        Receives byte message and decode it to get the message
+
+        :param: tag: To specify whether to read from buffer or read a new message
+        :type: tag: bool        
+        :return: the decoded message
+        """
         try:
             if tag and self._recv_buffer:
                 if self._jsonheader_len is None:
@@ -133,6 +171,12 @@ class ServerMessageHandler:
             print(e)
 
     def write(self, msg):
+
+        """
+        Sends the message to the connected device according to the Message protocol encoding and formatting
+
+        :param: msg: message to be sent
+        """        
         self.requests.append(msg)
         self.request = self.requests.pop(0)
         if self.request:
@@ -142,6 +186,10 @@ class ServerMessageHandler:
         self.request = None
 
     def process_protoheader(self):
+
+        """
+        Processes the first part of the received message
+        """        
         hdrlen = 2
         if len(self._recv_buffer) >= hdrlen:
             self._jsonheader_len = struct.unpack(
@@ -150,6 +198,10 @@ class ServerMessageHandler:
             self._recv_buffer = self._recv_buffer[hdrlen:]
 
     def process_jsonheader(self):
+
+        """
+        Processes the second part of the received message
+        """        
         hdrlen = self._jsonheader_len
         if len(self._recv_buffer) >= hdrlen:
             self.jsonheader = self._json_decode(
@@ -166,6 +218,10 @@ class ServerMessageHandler:
                     raise ValueError(f"Missing required header '{reqhdr}'.")
 
     def process_request(self):
+
+        """
+        Processes the third part of the received message i.e. the actual message content
+        """        
         content_len = self.jsonheader["content-length"]
         if not len(self._recv_buffer) >= content_len:
             return ""
@@ -177,6 +233,10 @@ class ServerMessageHandler:
             return msg
 
     def create_response(self):
+
+        """
+        Creates a response message to be send and adding it to the send_buffer
+        """        
         response = self._create_response_json_content()
         message = self._create_message(response["content_bytes"], response["content_type"], response["content_encoding"])
         self._send_buffer += message

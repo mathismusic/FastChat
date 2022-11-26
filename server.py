@@ -22,7 +22,7 @@ class Server:
         self.numClients = 0
         self.events = []
         self.userDBName = database
-        self.onlineUserSockets: dict[str, ServerMessageHandler] = {}
+        self.onlineUserSockets: dict[str, MessageHandler] = {}
 
         self.databaseServer = psycopg2.connect(
             database=self.userDBName,
@@ -42,7 +42,7 @@ class Server:
         Also accepts connections from other servers. Writes pending messages to the client."""
         conn, addr = self.sock.accept()  # ready to read
         conn.setblocking(True)
-        s = ServerMessageHandler(conn, addr)
+        s = MessageHandler(conn, addr)
         
         try:
                 msg = s.read()
@@ -68,6 +68,7 @@ class Server:
                 self.numClients += 1
                 curs = self.databaseServer.cursor()
                 curs.execute("""UPDATE serverload SET numclients=%s WHERE serverindex=%s""",(self.numClients, self.index))
+                self.databaseServer.commit()
                 curs.close()
                 globals.Globals.Servers[int(self.index)][2] += 1
                 print(globals.Globals.Servers[int(self.index)])
@@ -92,11 +93,12 @@ class Server:
             self.numClients -= 1
             curs = self.databaseServer.cursor()
             curs.execute("""UPDATE serverload SET numclients=%s WHERE serverindex=%s""",(self.numClients, self.index))
-            curs.close()
+            self.databaseServer.commit()
             globals.Globals.Servers[int(self.index)][2] -= 1
             self.onlineUserSockets.pop(username)
-            curs = self.databaseServer.cursor()
             curs.execute("""UPDATE usercreds SET connectedto = -1 WHERE username=%s""", (username,))
+            self.databaseServer.commit()
+            curs.close()
             return
 
     def serve_client(self, readable_sock):
@@ -144,11 +146,11 @@ class Server:
                     self.numClients -= 1
                     curs = self.databaseServer.cursor()
                     curs.execute("""UPDATE serverload SET numclients=%s WHERE serverindex=%s""",(self.numClients, self.index))
-                    curs.close()
+                    self.databaseServer.commit()
                     globals.Globals.Servers[int(self.index)][2] -= 1
                     self.onlineUserSockets.pop(username)
-                    curs = self.databaseServer.cursor()
                     curs.execute("""UPDATE usercreds SET connectedto = -1 WHERE username=%s""", (username,))
+                    self.databaseServer.commit()
                     curs.close()
         except Exception as e:
             print(e)
@@ -157,11 +159,12 @@ class Server:
             self.numClients -= 1
             curs = self.databaseServer.cursor()
             curs.execute("""UPDATE serverload SET numclients=%s WHERE serverindex=%s""",(self.numClients, self.index))
-            curs.close()
+            self.databaseServer.commit()
             globals.Globals.Servers[int(self.index)][2] -= 1
             self.onlineUserSockets.pop(username)
-            curs = self.databaseServer.cursor()
             curs.execute("""UPDATE usercreds SET connectedto = -1 WHERE username=%s""", (username,))
+            self.databaseServer.commit()
+            curs.close()
             return
 
     def run(self):
@@ -188,7 +191,7 @@ class Server:
             s2 = "Server " + str(self.index)
             temp_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             temp_sock.connect((globals.Globals.Servers[i][0],int(globals.Globals.Servers[i][1])))
-            self.onlineUserSockets[s] = ServerMessageHandler(temp_sock, (globals.Globals.Servers[i][0],int(globals.Globals.Servers[i][1])),s)
+            self.onlineUserSockets[s] = MessageHandler(temp_sock, (globals.Globals.Servers[i][0],int(globals.Globals.Servers[i][1])),s)
             print("Sending request to ", i, " from ", self.index)
             self.onlineUserSockets[s].write({"Username": s2})
             self.events.append(self.onlineUserSockets[s].sock)

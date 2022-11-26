@@ -57,7 +57,7 @@ class LoadBalancer:
         conn, addr = self.sock.accept()  # Should be ready to read
         conn.setblocking(True)
         self.events.append(conn)
-        self.handler = ServerMessageHandler(conn, addr)
+        self.handler = MessageHandler(conn, addr)
         # print('0')
         
     def check_and_allocate_client(self, conn):
@@ -98,8 +98,8 @@ class LoadBalancer:
         curs.execute("UPDATE \"usercreds\" SET connectedto=%s WHERE username=%s",(self.servers.index(server),username))
         self.databaseServer.commit()
         curs.close()
+        self.events.remove(conn)
         conn.close()
-        self.events.pop()
         return
 
     def choose_server(self) -> list[str]:
@@ -109,16 +109,17 @@ class LoadBalancer:
             return [globals.Globals.Servers[self.se][0], globals.Globals.Servers[self.se][1]]
         if self.algorithm == 'least-load':
             curs = self.databaseServer.cursor()
-            curs.execute("""SELECT serverindex, MIN numclients FROM serverload""")
+            curs.execute("""
+            SELECT 
+                serverindex
+            FROM 
+                serverload 
+            WHERE 
+                numclients=(SELECT MIN(numclients) FROM serverload)
+            """)
             res = curs.fetchall()[0][0]
             curs.close()
             return [globals.Globals.Servers[res][0], globals.Globals.Servers[res][1]]
-        # ans = 0
-        # print(globals.Globals.Servers)
-        # for i in range(len(globals.Globals.Servers)):
-        #     if globals.Globals.Servers[i][2] < globals.Globals.Servers[ans][2]:
-        #         ans = i
-        # return [globals.Globals.Servers[ans][0], globals.Globals.Servers[ans][1]]
         if self.algorithm == 'naive':
             return self.servers[0]
         raise Exception('Invalid algorithm')
