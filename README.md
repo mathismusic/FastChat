@@ -2,6 +2,8 @@
 
 A simple WhatsApp-like chat service. Supports groups and DMs with secure end-to-end encryption. Server architecture supports even load distribution. Was made as part of the CS 251 course project in Autumn 2022, by the team Konigsberg.
 
+Detailed documentation can be found in ```/build/html/index.html```
+
 ## Running the Code
 To run the Client, execute ```python client.py```
 To run the Servers, execute ```python system.py```
