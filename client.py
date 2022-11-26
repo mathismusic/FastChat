@@ -426,6 +426,10 @@ class Client:
                     continue
                 
                 if rvr == '-e':
+                    print("Saving your pending messages, Please Wait")
+                    isReadable, _, _ = select.select([self.s], [], [], 0.1)
+                    if len(isReadable):
+                        self.receiveMessage()
                     if self.s:
                         self.s.close()
                     print(BOLD_BLUE + "Thank you for using FastChat!" + RESET)
@@ -488,6 +492,10 @@ class Client:
                 break
 
             except KeyboardInterrupt as e:
+                print("Saving your pending messages, Please Wait")
+                isReadable, _, _ = select.select([self.s], [], [], 0.1)
+                if len(isReadable):
+                    self.receiveMessage()
                 print(BOLD_BLUE + "\nThank you for using FastChat!" + RESET)
                 if self.s:
                     self.s.close()
@@ -506,7 +514,7 @@ class Client:
         curs.execute("SELECT chat_id, sender_name, msg, fernetkey,t FROM history WHERE chat_id=%s ORDER BY t DESC LIMIT 20", (chat_id,))
         messages = curs.fetchall()
         for message in reversed(messages):
-            msg_obj = Message(message[1], self.username, message[2], message[3], None)
+            msg_obj = Message(message[1], self.username, message[2], message[3], rvr if not self.inAGroup else rvr[6:])
             msg_obj = self.cryptography.password_decrypt(self.password, msg_obj)
             to_print = msg_obj.message
             if to_print[:9] == "__image__":
@@ -651,7 +659,7 @@ class Client:
         sent = "sent" if (data.sender == self.username) else "received"
         folder = "sent_imgs" if sent == "sent" else "received_imgs"
         imgfilename = f"{folder}/{data.sender}_{data.group_name[:6] + '_' if data.group_name else ''}_{str(timestamp)}.png"
-        print(f"You {sent} an image, find it in {imgfilename}\n") 
+        print(f"You {sent} an image" + ("" if sent == "sent" else f" from {data.sender}") + ", find it in {imgfilename}\n")
         img_bytes = binascii.unhexlify(data.message[9:])
         if not os.path.isdir(folder):
             os.mkdir(folder)

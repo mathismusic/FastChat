@@ -1,0 +1,132 @@
+\documentclass{beamer}
+\usepackage[utf8]{inputenc}
+\usepackage{hyperref}
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    urlcolor=cyan,
+    }
+
+\usetheme{Madrid}
+\usecolortheme{default}
+\renewcommand{\t}[1]{\texttt{#1}}
+\renewcommand{\b}[1]{\textbf{#1}}
+
+\title[FastChat] 
+{FastChat}
+
+
+\author[Konigsberg]{Kadivar Lisan Kumar \\ Ameya Vikrama Singh \\ Krishna Narasimhan Agaram}
+
+\institute[IITB] 
+{
+  IIT Bombay
+}
+
+\date[2022]
+{November 2022}
+
+
+
+\begin{document}
+
+\frame{\titlepage}
+
+\begin{frame}
+\frametitle{Table of Contents}
+\tableofcontents
+\end{frame}
+
+\section{Project Goals}
+\begin{frame}{Project Goals}
+
+The AIM of the project is to
+\begin{itemize}
+    \item Build network of Clients interacting with each other using some \textbf{Servers as Mediators}
+    \item Focus on obtaining high throughput and ensuring low latency of individual messages
+    \item Providing End-to-End Encryption of messages and Password authentication along with features like Creating Groups and sending images
+\end{itemize}
+
+\end{frame}
+
+\section{Softwares Used}
+\begin{frame}{Introduction}
+Main \t{python} libraries used include:
+\begin{itemize}
+    \item \t{socket}:- for networking and remote communication.
+    \item \t{psycopg2}:- PostgreSql for Database Management.
+    \item \t{select}:- for handling concurrent I/O in sockets.
+    \item \t{ast} and \t{json}:- to convert objects to string and back.
+    \item \t{cryptography}:- for secure end-to-end encryption of messages while sending, receiving and storing features.
+    \item \t{pwnlib}:- for scripting and obtaining results
+\end{itemize}
+\end{frame}
+
+\section{Project Architecture}
+\begin{frame}{Project Architecture}
+
+The code relies on sockets - read, write from sockets - select.select to get which have something to receive and then receive it - msg protocol in msghandler.
+
+The design is based mainly on the concept of sockets. Sockets connect clients to their servers. The exact connection setup is as follows.
+
+- Each client is connected (after login)
+
+- 
+
+- The file system is resonsible for creating db, starting the servers and load balancer remotely.
+\end{frame}
+
+
+\section{Message Protocol}
+
+\begin{frame}{Message Protocol}
+Message Protocol is the agreement between sender and receiver which defines the format in which the messages will be sent and received
+across the connection. The following is an overview of the protocol that we used.
+\begin{itemize}
+    \item Three block formatting - header, jsonheader and message\_block
+    \item header is a fixed size (in bytes) data which stores the size (in bytes) of the jsonheader
+    \item Jsonheader is a json string which defines the size of the message\_block along with other 
+    features of that meassage like type of encoding
+    \item message\_block is the actual message that we want to send
+    \item Assuming this Message formatting, the receiver uses the particular number of bytes to get the whole message
+    \item This ensures that the data sent through the connection is not lost
+    \item To implement the message protocol, we use a class called MessageHandler which stores the connection object, 
+    receive buffer and send buffer to name some of the most important 
+    \item This class provides \t{write(input)} and \t{read()} methods which allows us to send the message and receive a message 
+\end{itemize}
+
+\end{frame}
+
+\section{Critique}
+\begin{frame}{Critique - Load Balancing}
+    \begin{itemize}
+        \item We first tried out a round-robin strategy - The load balanceer chooses each server in turn. This proves to be good in some cases - for example, when clients rarely disconnect or they disconnect uniformly across the servers. In this case, the servers have nearly the same load, and so the system is balanced well.
+        \item This does have problems, though - consider a scenario when we do a round-robin balancing but all clients connected to one particular server logout. Then essentially one less server is handling all the traffic, and the free server will only get its first client when its turn comes again in the round-robin.
+    \end{itemize}
+\end{frame}
+
+\begin{frame}
+    \frametitle{Critique - Load Balancing}
+    \begin{itemize}
+        \item Hence we tried another balancing strategy that addresses the concern above - while the free server has less clients than any other, we add new clients exclusively to it. This ensures (can prove) that \b{the difference between the number of clients connected to \emph{any two servers} is atmost 1} under the (reasonable) assumption that logins happen at least as often as logouts.
+        \item This performs much faster, and indeed is a good strategy. Hence, our main algorithms are 'round-robin' and 'least-load'. Which one to choose can be specified to the load-balancer.
+    \end{itemize}
+\end{frame}
+
+\begin{frame}
+    \frametitle{Critique - Load Balancer}
+    \begin{itemize}
+        \item \b{Further Thoughts: }There could be further optimizations to our number-of-clients minimization idea above, for example: Instead of number of clients, we could minimize the total number of bytes sent by each server.
+        \item Our code is modular and can easily accomodate this different load balancer.
+    \end{itemize}
+\end{frame}
+
+\begin{frame}
+    \frametitle{}
+
+    
+
+\end{frame}
+
+
+\end{document}
