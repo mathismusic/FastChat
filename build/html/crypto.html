@@ -19,7 +19,8 @@
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="prev" title="load balancer module" href="loadBalancer.html" /> 
+    <link rel="next" title="load balancer module" href="loadBalancer.html" />
+    <link rel="prev" title="message module" href="message.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -42,8 +43,10 @@
 <li class="toctree-l1 current"><a class="reference internal" href="modules.html">q3</a><ul class="current">
 <li class="toctree-l2"><a class="reference internal" href="server.html">server module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="client.html">client module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="loadBalancer.html">load balancer module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="message.html">message module</a></li>
 <li class="toctree-l2 current"><a class="current reference internal" href="#">crypto module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="loadBalancer.html">load balancer module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="system.html">system module</a></li>
 </ul>
 </li>
 </ul>
@@ -81,6 +84,12 @@
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
 <p>The cryptography handler class. Requires the cryptography module. Handles key generation, 
 data encryption-decryption, and password hashing.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="crypto.Crypt.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#crypto.Crypt.__init__" title="Permalink to this definition"></a></dt>
+<dd><p>Constructor</p>
+</dd></dl>
+
 <dl class="py method">
 <dt class="sig sig-object py" id="crypto.Crypt.decrypt_fernet_key">
 <span class="sig-name descname"><span class="pre">decrypt_fernet_key</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">encrypted_fernet_key</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">bytes</span></span></span><a class="headerlink" href="#crypto.Crypt.decrypt_fernet_key" title="Permalink to this definition"></a></dt>
@@ -242,7 +251,7 @@ data encryption-decryption, and password hashing.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="crypto.Crypt.main_decrypt">
-<span class="sig-name descname"><span class="pre">main_decrypt</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">message_obj</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Message</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Message</span></span></span><a class="headerlink" href="#crypto.Crypt.main_decrypt" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">main_decrypt</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">message_obj</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="message.html#message.Message" title="message.Message"><span class="pre">Message</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="message.html#message.Message" title="message.Message"><span class="pre">Message</span></a></span></span><a class="headerlink" href="#crypto.Crypt.main_decrypt" title="Permalink to this definition"></a></dt>
 <dd><p>Decrypt the main message, by decrypting its Fernet key with the RSA private key and then the 
 message with the Fernet. RSA private key must be set before this is called.</p>
 <dl class="field-list simple">
@@ -253,7 +262,7 @@ message with the Fernet. RSA private key must be set before this is called.</p>
 <dd class="field-even"><p>message_obj: Message</p>
 </dd>
 <dt class="field-odd">Return type</dt>
-<dd class="field-odd"><p>Message</p>
+<dd class="field-odd"><p><a class="reference internal" href="message.html#message.Message" title="message.Message">Message</a></p>
 </dd>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p>The encrypted message object</p>
@@ -263,7 +272,7 @@ message with the Fernet. RSA private key must be set before this is called.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="crypto.Crypt.main_encrypt">
-<span class="sig-name descname"><span class="pre">main_encrypt</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">message_obj</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Message</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Message</span></span></span><a class="headerlink" href="#crypto.Crypt.main_encrypt" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">main_encrypt</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">message_obj</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="message.html#message.Message" title="message.Message"><span class="pre">Message</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="message.html#message.Message" title="message.Message"><span class="pre">Message</span></a></span></span><a class="headerlink" href="#crypto.Crypt.main_encrypt" title="Permalink to this definition"></a></dt>
 <dd><p>Encrypt the main message, with a newly generated fernet key which is assigned to the message
 after RSA encryption. RSA encrypt key must be set before this is called.</p>
 <dl class="field-list simple">
@@ -274,7 +283,7 @@ after RSA encryption. RSA encrypt key must be set before this is called.</p>
 <dd class="field-even"><p>message_obj: Message</p>
 </dd>
 <dt class="field-odd">Return type</dt>
-<dd class="field-odd"><p>Message</p>
+<dd class="field-odd"><p><a class="reference internal" href="message.html#message.Message" title="message.Message">Message</a></p>
 </dd>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p>The encrypted message object</p>
@@ -284,7 +293,7 @@ after RSA encryption. RSA encrypt key must be set before this is called.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="crypto.Crypt.password_decrypt">
-<span class="sig-name descname"><span class="pre">password_decrypt</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">password</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">message_obj</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Message</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Message</span></span></span><a class="headerlink" href="#crypto.Crypt.password_decrypt" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">password_decrypt</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">password</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">message_obj</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="message.html#message.Message" title="message.Message"><span class="pre">Message</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="message.html#message.Message" title="message.Message"><span class="pre">Message</span></a></span></span><a class="headerlink" href="#crypto.Crypt.password_decrypt" title="Permalink to this definition"></a></dt>
 <dd><p>Decrypt the message with password.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Param</dt>
@@ -300,7 +309,7 @@ after RSA encryption. RSA encrypt key must be set before this is called.</p>
 <dd class="field-even"><p>password: str</p>
 </dd>
 <dt class="field-odd">Return type</dt>
-<dd class="field-odd"><p>Message</p>
+<dd class="field-odd"><p><a class="reference internal" href="message.html#message.Message" title="message.Message">Message</a></p>
 </dd>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p>The decrypted message</p>
@@ -310,7 +319,7 @@ after RSA encryption. RSA encrypt key must be set before this is called.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="crypto.Crypt.password_encrypt">
-<span class="sig-name descname"><span class="pre">password_encrypt</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">password</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">message_obj</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Message</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Message</span></span></span><a class="headerlink" href="#crypto.Crypt.password_encrypt" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">password_encrypt</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">password</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">message_obj</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="message.html#message.Message" title="message.Message"><span class="pre">Message</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="message.html#message.Message" title="message.Message"><span class="pre">Message</span></a></span></span><a class="headerlink" href="#crypto.Crypt.password_encrypt" title="Permalink to this definition"></a></dt>
 <dd><p>Encrypt the message with password.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Param</dt>
@@ -326,7 +335,7 @@ after RSA encryption. RSA encrypt key must be set before this is called.</p>
 <dd class="field-even"><p>password: str</p>
 </dd>
 <dt class="field-odd">Return type</dt>
-<dd class="field-odd"><p>Message</p>
+<dd class="field-odd"><p><a class="reference internal" href="message.html#message.Message" title="message.Message">Message</a></p>
 </dd>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p>The encrypted message</p>
@@ -368,7 +377,8 @@ after RSA encryption. RSA encrypt key must be set before this is called.</p>
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="loadBalancer.html" class="btn btn-neutral float-left" title="load balancer module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="message.html" class="btn btn-neutral float-left" title="message module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="loadBalancer.html" class="btn btn-neutral float-right" title="load balancer module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

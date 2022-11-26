@@ -43,8 +43,10 @@
 <li class="toctree-l1 current"><a class="reference internal" href="modules.html">q3</a><ul class="current">
 <li class="toctree-l2 current"><a class="current reference internal" href="#">server module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="client.html">client module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="loadBalancer.html">load balancer module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="message.html">message module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="crypto.html">crypto module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="loadBalancer.html">load balancer module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="system.html">system module</a></li>
 </ul>
 </li>
 </ul>
@@ -83,6 +85,12 @@
 <p>Server class. Contains host address and port, 
 along with a connection to the PSQL server hosted locally.
 Contains a dictionary of Online users mapping to their MessageHandlers.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="server.Server.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">host</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">port</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">database</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">index</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#server.Server.__init__" title="Permalink to this definition"></a></dt>
+<dd><p>Constructor, initializes to a default IP and port. Creates empty databases.</p>
+</dd></dl>
+
 <dl class="py method">
 <dt class="sig sig-object py" id="server.Server.accept_connection">
 <span class="sig-name descname"><span class="pre">accept_connection</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#server.Server.accept_connection" title="Permalink to this definition"></a></dt>

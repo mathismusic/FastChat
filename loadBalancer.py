@@ -61,6 +61,12 @@ class LoadBalancer:
         self.handlers[addr] = MessageHandler(conn, addr)
         
     def check_and_allocate_client(self, conn: socket.socket):
+        """
+        Authorizes user by requesting credentials and verifying them. If not verified, it sends "invalid" back to the client. Otherwise, it appropriately chooses a server for the client and sends the host and port of this server back to the client.
+
+        :param: conn: the socket object at the load balancer that has connected to the client
+        :type: socket.socket
+        """
         curr_handler = self.handlers[conn.getpeername()]
         msg = curr_handler.read()
         if msg is None:
@@ -107,7 +113,12 @@ class LoadBalancer:
         return
 
     def choose_server(self) -> list[str]:
-        """Decides which server to send the client to."""
+        """
+        Decides which server to send the client to using self.algorithm.
+
+        :return: the host and port of the server chosen, as a list.
+        :rtype: list[str]
+        """
         if self.algorithm == 'round-robin':
             self.se = (self.se + 1) % len(globals.Globals.Servers)
             return [globals.Globals.Servers[self.se][0], globals.Globals.Servers[self.se][1]]
@@ -130,7 +141,9 @@ class LoadBalancer:
         
     
     def run(self):
-        """Main callback"""
+        """
+        Main callback to accept and allot servers to clients.
+        """
         # print('s')
         self.events.append(self.sock)
         # print('t')

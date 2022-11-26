@@ -18,6 +18,11 @@ class Message:
         self.group_name: str = grp_name
     
     def get_json(self):
+        """
+        Returns a dictionary containing the details of the message
+
+        :rtype: dict[str, str]  
+        """
         return {"Sender": self.sender, "Recipient": self.recipient, "Message": self.message, "Key": self.fernet_key, "Group_Name": self.group_name }
 
     def __repr__(self) -> str:

@@ -19,8 +19,8 @@
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="crypto module" href="crypto.html" />
-    <link rel="prev" title="client module" href="client.html" /> 
+    <link rel="next" title="system module" href="system.html" />
+    <link rel="prev" title="crypto module" href="crypto.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -43,8 +43,10 @@
 <li class="toctree-l1 current"><a class="reference internal" href="modules.html">q3</a><ul class="current">
 <li class="toctree-l2"><a class="reference internal" href="server.html">server module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="client.html">client module</a></li>
-<li class="toctree-l2 current"><a class="current reference internal" href="#">load balancer module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="message.html">message module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="crypto.html">crypto module</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">load balancer module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="system.html">system module</a></li>
 </ul>
 </li>
 </ul>
@@ -84,6 +86,35 @@
 and server load balancing. It implements a round robin distribution of the client load. An
 alternate algorithm based on least-load identification can be given as a flag.</p>
 <dl class="py method">
+<dt class="sig sig-object py" id="loadBalancer.LoadBalancer.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">servers</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">host</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">port</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">database</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">algorithm</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'least-load'</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#loadBalancer.LoadBalancer.__init__" title="Permalink to this definition"></a></dt>
+<dd><p>Constructor</p>
+<dl class="field-list simple">
+<dt class="field-odd">Param</dt>
+<dd class="field-odd"><p>servers: Contains the addresses of each of the main servers as a list</p>
+</dd>
+<dt class="field-even">Type</dt>
+<dd class="field-even"><p>servers: list[list[int]]</p>
+</dd>
+<dt class="field-odd">Param</dt>
+<dd class="field-odd"><p>host: hostname</p>
+</dd>
+<dt class="field-even">Param</dt>
+<dd class="field-even"><p>port: port number</p>
+</dd>
+<dt class="field-odd">Param</dt>
+<dd class="field-odd"><p>database: Databse name</p>
+</dd>
+<dt class="field-even">Param</dt>
+<dd class="field-even"><p>algorithm: The load balancing method</p>
+</dd>
+<dt class="field-odd">Type</dt>
+<dd class="field-odd"><p>algorithm: str</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="loadBalancer.LoadBalancer.accept_client">
 <span class="sig-name descname"><span class="pre">accept_client</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#loadBalancer.LoadBalancer.accept_client" title="Permalink to this definition"></a></dt>
 <dd><p>Accepts the connection request from a client, after correct authentication.
@@ -94,19 +125,36 @@ client’s last session are sent</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="loadBalancer.LoadBalancer.check_and_allocate_client">
-<span class="sig-name descname"><span class="pre">check_and_allocate_client</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">conn</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#loadBalancer.LoadBalancer.check_and_allocate_client" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
+<span class="sig-name descname"><span class="pre">check_and_allocate_client</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">conn</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">socket</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#loadBalancer.LoadBalancer.check_and_allocate_client" title="Permalink to this definition"></a></dt>
+<dd><p>Authorizes user by requesting credentials and verifying them. If not verified, it sends “invalid” back to the client. Otherwise, it appropriately chooses a server for the client and sends the host and port of this server back to the client.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Param</dt>
+<dd class="field-odd"><p>conn: the socket object at the load balancer that has connected to the client</p>
+</dd>
+<dt class="field-even">Type</dt>
+<dd class="field-even"><p>socket.socket</p>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="loadBalancer.LoadBalancer.choose_server">
 <span class="sig-name descname"><span class="pre">choose_server</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#loadBalancer.LoadBalancer.choose_server" title="Permalink to this definition"></a></dt>
-<dd><p>Decides which server to send the client to.</p>
+<dd><p>Decides which server to send the client to using self.algorithm.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>the host and port of the server chosen, as a list.</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>list[str]</p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="loadBalancer.LoadBalancer.run">
 <span class="sig-name descname"><span class="pre">run</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#loadBalancer.LoadBalancer.run" title="Permalink to this definition"></a></dt>
-<dd><p>Main callback</p>
+<dd><p>Main callback to accept and allot servers to clients.</p>
 </dd></dl>
 
 </dd></dl>
@@ -117,8 +165,8 @@ client’s last session are sent</p>
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="client.html" class="btn btn-neutral float-left" title="client module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="crypto.html" class="btn btn-neutral float-right" title="crypto module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="crypto.html" class="btn btn-neutral float-left" title="crypto module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="system.html" class="btn btn-neutral float-right" title="system module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>
