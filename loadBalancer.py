@@ -103,6 +103,7 @@ class LoadBalancer:
         # conn.close()
         self.events.remove(conn)
         self.handlers.pop(conn.getpeername())
+        conn.close()
         return
 
     def choose_server(self) -> list[str]:
