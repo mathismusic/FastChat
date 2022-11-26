@@ -356,6 +356,8 @@ class Client:
                             self.get_recipient()
                         elif usr_input == "-e": # user wants to exit
                             print(BOLD_BLUE + "Thank you for using FastChat!" + RESET)
+                            if self.s:
+                                self.s.close()
                             return
                         elif usr_input == "-add": # user wants to add member to group
                             self.add_member()
@@ -420,6 +422,8 @@ class Client:
                 
                 if rvr == '-e':
                     print(BOLD_BLUE + "Thank you for using FastChat!" + RESET)
+                    if self.s:
+                        self.s.close()
                     sys.exit(1)
                 if rvr[:3] == '-g ':
                     rvr = 'group_' + rvr[3:] # that's how group names are stored in the database. We prepend the 'group_' tag to allow for a dm and a group name to be identical.                
@@ -618,14 +622,17 @@ class Client:
         curs = self.database_connection.cursor()
         curs.execute("""SELECT groupmembers, adminlist FROM groups WHERE groupname=%s""", (self.group_name,))
         data = curs.fetchall()
-        groupmembers_new = str(ast.literal_eval(data[0][0]).remove(name_of_user))
+        groupmembers_new = ast.literal_eval(data[0][0])
+        groupmembers_new.remove(name_of_user)
+        groupadmins_new = str(groupadmins_new)
         admins = ast.literal_eval(data[0][1])
         if name_of_user in admins:
-            groupadmins_new = str(ast.literal_eval(data[0][1]).remove(name_of_user))
+            groupadmins_new = ast.literal_eval(data[0][1])
+            groupadmins_new.remove(name_of_user)
+            groupadmins_new = str(groupadmins_new)
         curs.execute("""UPDATE groups SET groupmembers=%s, adminlist=%s WHERE groupname=%s""", (groupmembers_new, groupadmins_new, self.group_name))
         self.database_connection.commit()
         curs.close()
-
         self.receivers.pop(name_of_user)
         print(BLUE + "Successfully deleted member " + GREEN + name_of_user + BLUE + "!" + RESET)
         print([self.username] + list(self.receivers.keys()))

@@ -102,7 +102,7 @@ class LoadBalancer:
 
         # connect the user to server
         server = self.choose_server()
-        self.handler.write({"hostname": server[0], "port": server[1]})
+        curr_handler.write({"hostname": server[0], "port": server[1]})
         curs.execute("UPDATE \"usercreds\" SET connectedto=%s WHERE username=%s",(self.servers.index(server),username))
         self.databaseServer.commit()
         curs.close()
