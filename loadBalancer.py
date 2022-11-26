@@ -1,15 +1,11 @@
 import socket
 import select
-import json
-import sys
 import ast
 import psycopg2
-from server import Server
 import globals
-import importlib
-importlib.reload(globals)
-import selectors
 from message import *
+# import json
+# import sys
 
 # load balancer server
 class LoadBalancer:
@@ -49,7 +45,7 @@ class LoadBalancer:
         self.sock.listen()
         print(f"Listening on {(self.HOST, self.PORT)}")
         self.sock.setblocking(True)
-        self.se = 0
+        self.se = -1
     
     # the load balancer does the work of accepting clients when they try to login
     def accept_client(self):
@@ -108,21 +104,25 @@ class LoadBalancer:
 
     def choose_server(self) -> list[str]:
         """Decides which server to send the client to."""
-        self.se = (self.se + 1) % len(globals.Globals.Servers)
-        return [globals.Globals.Servers[self.se][0], globals.Globals.Servers[self.se][1]]
-
-        curs = self.databaseServer.cursor()
-        curs.execute("""SELECT serverindex, MIN numclients FROM serverload""")
-        res = curs.fetchall()[0][0]
-        curs.close()
-        return [globals.Globals.Servers[res][0], globals.Globals.Servers[ans][1]]
-        ans = 0
-        print(globals.Globals.Servers)
-        for i in range(len(globals.Globals.Servers)):
-            if globals.Globals.Servers[i][2] < globals.Globals.Servers[ans][2]:
-                ans = i
-        return [globals.Globals.Servers[ans][0], globals.Globals.Servers[ans][1]]
-        return self.servers[0]
+        if self.algorithm == 'round-robin':
+            self.se = (self.se + 1) % len(globals.Globals.Servers)
+            return [globals.Globals.Servers[self.se][0], globals.Globals.Servers[self.se][1]]
+        if self.algorithm == 'least-load':
+            curs = self.databaseServer.cursor()
+            curs.execute("""SELECT serverindex, MIN numclients FROM serverload""")
+            res = curs.fetchall()[0][0]
+            curs.close()
+            return [globals.Globals.Servers[res][0], globals.Globals.Servers[res][1]]
+        # ans = 0
+        # print(globals.Globals.Servers)
+        # for i in range(len(globals.Globals.Servers)):
+        #     if globals.Globals.Servers[i][2] < globals.Globals.Servers[ans][2]:
+        #         ans = i
+        # return [globals.Globals.Servers[ans][0], globals.Globals.Servers[ans][1]]
+        if self.algorithm == 'naive':
+            return self.servers[0]
+        raise Exception('Invalid algorithm')
+        
     
     def run(self):
         """Main callback"""
@@ -142,9 +142,7 @@ class LoadBalancer:
         
 if __name__ == "__main__":
     # lb = LoadBalancer(json.loads(sys.argv[1]), sys.argv[2], sys.argv[3], sys.argv[4], sys.argv[5])
+
     args = str([[[globals.Globals.default_host, "61001"], [globals.Globals.default_host, "61002"], [globals.Globals.default_host, "61003"], [globals.Globals.default_host, "61004"], [globals.Globals.default_host, "61005"]], globals.Globals.default_host, "61051", "fastchat_users", "least-load"])
-    # args = input()
-    # print("||" + repr(args))
-    # print(ast.literal_eval(args))
     lb = LoadBalancer(*ast.literal_eval(args))
     lb.run()

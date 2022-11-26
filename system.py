@@ -1,9 +1,6 @@
-from server import Server
-from loadBalancer import LoadBalancer
 import psycopg2
 import json
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
-import threading
 import subprocess
 from globals import Globals
 
@@ -83,21 +80,13 @@ class System:
         # initialize server data and load balancer data
         self.servers = [[self.SERVER_HOSTS[i], self.SERVER_PORTS[i], self.userDBName] for i in range(n)]
         for i in range(n):
-            # pass
             subprocess.call(['./start_server.sh', self.SERVER_HOSTS[i], self.SERVER_PORTS[i], self.userDBName, str(i)])
             curs = self.databaseServer.cursor()
             curs.execute("""INSERT INTO serverload (serverindex, numclients) VALUES (%s,%s) """, (i, 0))
             self.databaseServer.commit()
             curs.close()
-        # print("hello worlddd")
         self.loadBalancer = [self.servers, self.LB_HOST, self.LB_PORT, self.userDBName, 'least-load']
-        # print(json.dumps(self.loadBalancer))
         subprocess.call(['./start_lb.sh', json.dumps(self.loadBalancer)])
-
-        # threads: list[threading.Thread] = []
-        # for i in range(n):
-        #     threads.append(threading.Thread(target=self.servers[i].run, args=tuple()))
-        #     threads[-1].start()
 
 if __name__ == '__main__':
     n = 3

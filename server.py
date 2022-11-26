@@ -1,20 +1,13 @@
 import sys
 import socket
-import selectors
 import select
-from types import SimpleNamespace
 import json
 import psycopg2
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 from color_codes import *
 import globals
-import importlib
-importlib.reload(globals)
 from message import *
 
-# 192.168.103.215
-
-#users = {}
 class Server:
     """Server class. Contains host address and port, 
     along with a connection to the PSQL server hosted locally.
@@ -47,7 +40,7 @@ class Server:
     def accept_connection(self):
         """Accepts the connection request from an authenticated client.
         Also accepts connections from other servers. Writes pending messages to the client."""
-        conn, addr = self.sock.accept()  # Should be ready to read
+        conn, addr = self.sock.accept()  # ready to read
         conn.setblocking(True)
         s = ServerMessageHandler(conn, addr)
         
@@ -58,9 +51,8 @@ class Server:
                 if type(msg)==dict:
                     username = msg['Username']
                 else:
-                    print("Why?")
-                    print("|" + msg + "|", msg is None, msg == "")
-                # msg = conn.recv(1024).decode()
+                    print("Error: ", type(msg), str(msg))
+                    return
                 
                 if username[:7]=="Server ":
                     s.connectedTo = username
@@ -88,7 +80,6 @@ class Server:
                 messages = curs.fetchall()
                 self.onlineUserSockets[username].write(str(len(messages)))
                 for mess in messages:
-                    # self.onlineUserSockets[username].sendall(json.dumps(mess[3]).encode())
                     self.onlineUserSockets[username].write(mess)
                     curs.execute("DELETE FROM pending WHERE msgid=%s",(mess[0],))
                     self.databaseServer.commit()
@@ -117,33 +108,24 @@ class Server:
             if self.onlineUserSockets[user].sock == readable_sock:
                 username = user
                 break
-        else: print("Should not happen")
-        # assert(self.onlineUserSockets[username].sock == readable_sock)
         try:
             
             msg = self.onlineUserSockets[username].read()
-            # recv_data = sock.recv(1024)  # Should be ready to read
             if msg:
                 msg_str = json.dumps(msg)
                 # data.outb += recv_data
                 curs = self.databaseServer.cursor()
                 curs.execute("SELECT * FROM \"usercreds\" WHERE username=%s",(msg['Recipient'],))
                 userentry = curs.fetchall()
-                # if len(userentry)==0:
-                #     self.onlineUserSockets[username].write("invalid_recipient")
-                    # sock.sendall('invalid_recipient'.encode())
-                    # return
                 if msg['Recipient'] not in self.onlineUserSockets:
                     if userentry[0][5]==-1:
                         curs.execute("INSERT INTO pending (sender,receiver,jsonmsg) VALUES (%s,%s,%s) ",(msg['Sender'],msg['Recipient'],msg_str))
                         self.databaseServer.commit()
                     else:
                         self.onlineUserSockets["Server " + str(userentry[0][5])].write(msg)
-                        # self.serverConnections[userentry[0][5]].sendall(recv_data)
                         
                 else: # user is online and in the same server
                     self.onlineUserSockets[msg['Recipient']].write(msg)
-                    # self.onlineUserSockets[msg['Recipient']].sendall(recv_data)
                 
                 curs.close()
                 # give acknowledgement of received to the sender
@@ -209,9 +191,6 @@ class Server:
             self.onlineUserSockets[s] = ServerMessageHandler(temp_sock, (globals.Globals.Servers[i][0],int(globals.Globals.Servers[i][1])),s)
             print("Sending request to ", i, " from ", self.index)
             self.onlineUserSockets[s].write({"Username": s2})
-            #data = SimpleNamespace(username=s, inb=[], outb=[{"Username": s2}])
-            # events = selectors.EVENT_READ | selectors.EVENT_WRITE
-            # self.events.register(self.onlineUserSockets[s].sock,events,data=None)
             self.events.append(self.onlineUserSockets[s].sock)
             
     def num_active_clients(self):

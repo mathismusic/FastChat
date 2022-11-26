@@ -10,7 +10,6 @@ from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 from crypto import Crypt
 from message import *
 from globals import Globals
-from types import SimpleNamespace
 
 class Client:
     """
@@ -26,10 +25,8 @@ class Client:
         :type: database str
         """
         self.s = None # the client's socket
-        self.HOST = Globals.default_host  # The server's hostname or IP address
-        self.PORT = 61001 if len(sys.argv) == 1 else 61002  # The port used by the server
         self.LB_HOST = Globals.default_host  # The load balancer's hostname or IP address
-        self.LB_PORT = 61051 if len(sys.argv) == 1 else 61012  # The port used by the load balancer
+        self.LB_PORT = 61051 # The port used by the load balancer
         self.handler = None
         self.username = None
         self.password = None
@@ -51,7 +48,7 @@ class Client:
         )
         self.cryptography = Crypt() 
         
-        #  TODO: add fields to remember username and password to auto-login next time. (use a local client-specific database/file to store local client stuff)
+        #  TODO if time: add fields to remember username and password to auto-login next time. (use a local client-specific database/file to store local client stuff)
         
     def login(self) -> None:
         """Asks login details from user, and sends them to server for authentication.
@@ -206,8 +203,6 @@ class Client:
             print(BOLD_YELLOW + "\nCaught keyboard interrupt, exiting" + RESET)
             sys.exit(1)
         
-        
-
     def sendMessage(self, input):
         """
         Sends message after RSA encryption,
@@ -215,14 +210,6 @@ class Client:
 
         :param: input - The message string
         """
-        
-        # database_curs = self.database_connection.cursor()
-        # database_curs.execute("SELECT (groupmembers) from groups where groupname=(%s)", (self.receiver,))
-        # members = database_curs.fetchall()
-        # if members == "":
-        #     print("Not supposed to happen, hmm")
-        #     return
-        # members = ast.literal_eval(members)
         
         for receiver in self.receivers:
             to_send = Message(self.username, receiver, input, None, self.group_name if self.inAGroup else None)
@@ -250,8 +237,6 @@ class Client:
             self.sqlConnection.commit()
         curs.close()
 
-        
-
     def receiveMessage(self, tag=False):
         """
         Receives message, decrypts it and adds it into the chat history after password encryption. 
@@ -263,12 +248,9 @@ class Client:
             print(YELLOW + "msg: " + RESET + "|" + str(msg) + "|")
             return
 
-        # print(YELLOW + "msg: " + RESET + "|" + str(msg) + "|")
-        data = msg   
-        
+        data = msg           
         data = self.cryptography.main_decrypt(Message(data['Sender'], data['Recipient'], data['Message'], data['Key'], data['Group_Name'])) 
         to_store = self.cryptography.password_encrypt(self.password, data)
-        #print(YELLOW + "data: " + RESET + "|" + str(data) + "|\n\n")
         
         curs = self.sqlConnection.cursor()
 
@@ -306,11 +288,9 @@ class Client:
         self.get_recipient()
         self.display()
         
-        
         try:
             while True:
                 readable_events, _, _ = select.select(self.events, [], [])
-                # print(self.receivers)
                 for readable_event in readable_events:
                     if readable_event == self.s:
                         print()
@@ -341,39 +321,8 @@ class Client:
             self.sqlConnection.close()
             sys.exit(1)
         
-        # self.selector.close()
-        
-        # try:
-        #     while True:
-        #         input_streams = [self.s, sys.stdin]
-        #         inputs = select.select(input_streams, [], [], 180)[0] # remove timeout?, Change to selector? Does similar
-                
-        #         for input in inputs:
-        #             if input is self.s:
-        #                 print()
-        #                 self.receiveMessage()
-        #                 self.display()
-                        
-        #             else:
-        #                 input = sys.stdin.readline()[:-1]
-        #                 if input == "-cd": # user would like to change the dm
-        #                     self.receiver = None
-        #                     self.get_recipient()
-        #                 elif input == "-e": # user wants to exit
-        #                     print(BOLD_BLUE + "Thank you for using FastChat!" + RESET)
-        #                     return
-        #                 else:
-        #                     self.sendMessage(input)
-        #                 self.display()
-                        
-        # except KeyboardInterrupt:
-        #     print(BOLD_BLUE + "\nThank you for using FastChat!" + RESET)
-        #     self.s.close()
-        #     self.sqlConnection.close()
-        #     sys.exit(1)
-
     def display(self):
-        """Prompt"""
+        """User prompt"""
         sys.stdout.write(MAGENTA + ">>> You: " + GREEN)
         sys.stdout.flush()     
         
@@ -393,8 +342,7 @@ class Client:
             self.receivers[name_of_user] = pub_key_string[0][0]
             curs.close()
             return True
-            #self.cryptography.get_rsa_encrypt_key(pub_key_string[0][0].encode())
-        
+            
     def get_recipient(self):
         """Get all messages from history from a given contact or group,
         ordered by time, and display after password decryption.

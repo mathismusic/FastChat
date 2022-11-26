@@ -38,53 +38,28 @@ class ServerMessageHandler:
         self.request = None
         self.requests = []
 
-    # def _set_selector_events_mask(self, mode):
-    #     """Set selector to listen for events: mode is 'r', 'w', or 'rw'."""
-    #     if mode == "r":
-    #         events = selectors.EVENT_READ
-    #     elif mode == "w":
-    #         events = selectors.EVENT_WRITE
-    #     elif mode == "rw":
-    #         events = selectors.EVENT_READ | selectors.EVENT_WRITE
-    #     else:
-    #         raise ValueError(f"Invalid events mask mode {mode!r}.")
-    #     self.selector.modify(self.sock, events, data=self)
-
     def _read(self):
         try:
             # Should be ready to read
             data = self.sock.recv(4096)
-            # print("whew: " + data + "::")
-        # except BlockingIOError:
-        #     # Resource temporarily unavailable (errno EWOULDBLOCK)
-        #     pass
         except Exception as e:
             print(e)
         else:
             if data != b'':
-                # print(data.decode())
                 self._recv_buffer += data
             else:
                 raise RuntimeError("Peer closed.")
 
     def _write(self):
         if self._send_buffer:
-            #print(f"Sending {self._send_buffer!r} to {self.addr}")
             try:
                 # Should be ready to write
                 sent = self.sock.send(self._send_buffer)
-            # except BlockingIOError:
-            #     # Resource temporarily unavailable (errno EWOULDBLOCK)
-            #     pass
             except Exception as e:
                 print(e)
             else:
                 self._send_buffer = self._send_buffer[sent:]
-                # Close when the buffer is drained. The response has been sent.
-                # if sent and not self._send_buffer:
-                #     #self.close()
-                #     pass
-
+                
     def _json_encode(self, obj, encoding):
         return json.dumps(obj, ensure_ascii=False, default=str).encode(encoding)
 
@@ -119,43 +94,6 @@ class ServerMessageHandler:
             "content_encoding": content_encoding
         }
         return response
-
-    # def _create_response_binary_content(self):
-    #     response = {
-    #         "content_bytes": b"First 10 bytes of request: "
-    #         + self.request[:10],
-    #         "content_type": "binary/custom-server-binary-type",
-    #         "content_encoding": "binary",
-    #     }
-    #     return response        
-        
-        
-    # def rd(self):
-    #     if self._recv_buffer == b"":
-    #         hdrlen = 2;
-    #         hdr = self.sock.recv(hdrlen)
-    #         self._jsonheader_len = struct.unpack(
-    #             ">h", hdr
-    #         )[0]
-    #         self.jsonheader = self._json_decode(
-    #             self.sock.recv(self._jsonheader_len), "utf-8"
-    #         )
-    #         for reqhdr in (
-    #             "byteorder",
-    #             "content-length",
-    #             "content-type",
-    #             "content-encoding",
-    #         ):
-    #             if reqhdr not in self.jsonheader:
-    #                 raise ValueError(f"Missing required header '{reqhdr}'.")
-            
-    #         content_len = self.jsonheader["content-length"]
-            
-    #         if self.jsonheader["content-type"] == "text/json":
-    #             encoding = self.jsonheader["content-encoding"]
-    #             msg = self._json_decode(content_len, encoding)
-    #             return msg
-        
 
     def read(self,tag=False):
         try:
@@ -192,7 +130,7 @@ class ServerMessageHandler:
                         self.request = None
                         return msg
         except Exception as e:
-            print(e) # fix outside later
+            print(e)
 
     def write(self, msg):
         self.requests.append(msg)
@@ -202,24 +140,6 @@ class ServerMessageHandler:
 
         self._write()
         self.request = None
-
-    def close(self):
-        print(f"Closing connection to {self.addr}")
-        try:
-            self.selector.unregister(self.sock)
-        except Exception as e:
-            print(
-                f"Error: selector.unregister() exception for "
-                f"{self.addr}: {e!r}"
-            )
-
-        try:
-            self.sock.close()
-        except OSError as e:
-            print(f"Error: socket.close() exception for {self.addr}: {e!r}")
-        finally:
-            # Delete reference to socket object for garbage collection
-            self.sock = None
 
     def process_protoheader(self):
         hdrlen = 2
@@ -255,33 +175,6 @@ class ServerMessageHandler:
             encoding = self.jsonheader["content-encoding"]
             msg = self._json_decode(data, encoding)
             return msg
-            # curs = self.databaseServer.cursor()
-            # curs.execute("SELECT * FROM \"usercreds\" WHERE username=%s",(msg['Recipient'],))
-            # userentry = curs.fetchall()
-            # if len(userentry)==0:
-            #     self.requests.("invalid Recipient")
-            #     return
-            # elif msg['Recipient'] not in onlineUsers:
-            #     if userentry[0][5]==-1:
-            #         curs.execute(" INTO pending (sender,receiver,jsonmsg) VALUES (%s,%s,%s) ",(msg['Sender'],msg['Recipient'],msg))
-            #         self.databaseServer.commit()
-            #     else:
-            #         self.serverConnections[userentry[0][5]].sendall(recv_data)
-                    
-            # else: # user is online and in the same server
-            #     self.onlineUserSockets[msg['Recipient']].sendall(recv_data)
-            # curs.close()
-            
-            #print(f"Received request {self.request!r} from {self.addr}")
-        #else:
-            # Binary or unknown content-type
-            #self.request = data
-            # print(
-            #     f"Received {self.jsonheader['content-type']} "
-            #     f"request from {self.addr}"
-            # )
-        # Set selector to listen for write events, we're done reading.
-        # self._set_selector_events_mask("w")
 
     def create_response(self):
         response = self._create_response_json_content()
