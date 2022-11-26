@@ -360,6 +360,8 @@ class Client:
                             if self.s:
                                 self.s.close()
                             print(BOLD_BLUE + "Thank you for using FastChat!" + RESET)
+                            if self.s:
+                                self.s.close()
                             return
                         elif usr_input == "-add": # user wants to add member to group
                             self.add_member()
@@ -424,12 +426,15 @@ class Client:
                     continue
                 
                 if rvr == '-e':
-                    isReadable, _, _ = select.select([self.s],[],[])
+                    print("Saving your pending messages, Please Wait")
+                    isReadable, _, _ = select.select([self.s], [], [], 0.1)
                     if len(isReadable):
                         self.receiveMessage()
                     if self.s:
                         self.s.close()
                     print(BOLD_BLUE + "Thank you for using FastChat!" + RESET)
+                    if self.s:
+                        self.s.close()
                     sys.exit(1)
                 if rvr[:3] == '-g ':
                     rvr = 'group_' + rvr[3:] # that's how group names are stored in the database. We prepend the 'group_' tag to allow for a dm and a group name to be identical.                
@@ -487,6 +492,10 @@ class Client:
                 break
 
             except KeyboardInterrupt as e:
+                print("Saving your pending messages, Please Wait")
+                isReadable, _, _ = select.select([self.s], [], [], 0.1)
+                if len(isReadable):
+                    self.receiveMessage()
                 print(BOLD_BLUE + "\nThank you for using FastChat!" + RESET)
                 isReadable, _, _ = select.select([self.s],[],[])
                 if len(isReadable):
@@ -508,7 +517,7 @@ class Client:
         curs.execute("SELECT chat_id, sender_name, msg, fernetkey,t FROM history WHERE chat_id=%s ORDER BY t DESC LIMIT 20", (chat_id,))
         messages = curs.fetchall()
         for message in reversed(messages):
-            msg_obj = Message(message[1], self.username, message[2], message[3], None)
+            msg_obj = Message(message[1], self.username, message[2], message[3], rvr if not self.inAGroup else rvr[6:])
             msg_obj = self.cryptography.password_decrypt(self.password, msg_obj)
             to_print = msg_obj.message
             if to_print[:9] == "__image__":
@@ -636,13 +645,15 @@ class Client:
         data = curs.fetchall()
         groupmembers_new = ast.literal_eval(data[0][0])
         groupmembers_new.remove(name_of_user)
+        groupadmins_new = str(groupadmins_new)
         admins = ast.literal_eval(data[0][1])
         if name_of_user in admins:
-            admins.remove(name_of_user)
-        curs.execute("""UPDATE groups SET groupmembers=%s, adminlist=%s WHERE groupname=%s""", (str(groupmembers_new), str(admins), self.group_name))
+            groupadmins_new = ast.literal_eval(data[0][1])
+            groupadmins_new.remove(name_of_user)
+            groupadmins_new = str(groupadmins_new)
+        curs.execute("""UPDATE groups SET groupmembers=%s, adminlist=%s WHERE groupname=%s""", (groupmembers_new, groupadmins_new, self.group_name))
         self.database_connection.commit()
         curs.close()
-
         self.receivers.pop(name_of_user)
         print(BLUE + "Successfully deleted member " + GREEN + name_of_user + BLUE + "!" + RESET)
         print([self.username] + list(self.receivers.keys()))
@@ -651,7 +662,7 @@ class Client:
         sent = "sent" if (data.sender == self.username) else "received"
         folder = "sent_imgs" if sent == "sent" else "received_imgs"
         imgfilename = f"{folder}/{data.sender}_{data.group_name[:6] + '_' if data.group_name else ''}_{str(timestamp)}.png"
-        print(f"You {sent} an image, find it in {imgfilename}\n") 
+        print(f"You {sent} an image" + ("" if sent == "sent" else f" from {data.sender}") + ", find it in {imgfilename}\n")
         img_bytes = binascii.unhexlify(data.message[9:])
         if not os.path.isdir(folder):
             os.mkdir(folder)
