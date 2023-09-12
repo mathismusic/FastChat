@@ -1,16 +1,12 @@
 # FastChat 
 
-A simple WhatsApp-like chat service. Supports groups and DMs with secure end-to-end encryption. Server architecture supports even load distribution. Was made as part of the CS 251 course project in Autumn 2022, by the team Konigsberg.
+A simple WhatsApp-like chat service. Supports groups and DMs with secure end-to-end encryption. Server architecture supports even load distribution. Was made as part of the CS 251 course project in Autumn 2022, by team Konigsberg.
 
-Detailed documentation can be found in ```/build/html/index.html```
+Detailed documentation can be found [here](/build/html/index.html).
 
 ## Running the Code
-<<<<<<< HEAD
 
-To run the Client, execute ```python client.py <host-of-server>```
-=======
 To run the Client, execute ```python client.py <server IP address>```
->>>>>>> 99fc0aaa74ef4c4872ed7683f93a211af6e27a66
 To run the Servers, execute ```python system.py```
 
 Change globals to change IP address of server and loadbalancer, number of servers, etc.
@@ -77,6 +73,8 @@ The Load Balancer is a special type of Server program that
 * The load balancer is never under stress of receiving actual content.
 
 <!-- ## References 
+
+We used a lot of Stackoverflow, of course. Here are some crucial references.
 
 https://stackoverflow.com/questions/32439167/psql-could-not-connect-to-server-connection-refused-error-when-connecting-to
 
